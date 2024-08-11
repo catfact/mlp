@@ -73,6 +73,9 @@ namespace mlp {
 
         // return true if the loop wraps after this frame
         bool ProcessFrame(const float *src, float *dst) {
+            if (state == State::STOPPED) {
+                return false;
+            }
             auto bufIdx = (phasor.currentFrame + frameOffset) % bufferFrames;
             if (readActive) {
                 for (int ch = 0; ch < numChannels; ++ch) {
@@ -115,20 +118,24 @@ namespace mlp {
 
         // non-interleaved stereo buffers
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
-        std::array<LayerBuffer, numLayers> buffers{};
+        std::array<LayerBuffer, numLayers> buffer{};
 
     public:
 
         Kernel() {
+            // FIXME: not an efficient design
+            // we're giving each layer a full audio buffer, sized to maximum loop length
+            // we *should* use one long buffer, and dynamically assign pointers into it as loops are set
             for (int i = 0; i < numLayers; ++i) {
-                layer[i].buffer = buffers[i].data();
+                buffer[i].fill(0.f);
+                layer[i].buffer = buffer[i].data();
             }
         }
 
         // process a single *stereo interleaved* audio frame
         void ProcessFrame(const float *&src, float *&dst) {
             float x[2];
-            float y[2];
+            float y[2] {0.f};
             x[0] = *src++;
             x[1] = *src++;
             for (int i = 0; i < numLayers; ++i) {

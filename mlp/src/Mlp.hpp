@@ -15,7 +15,6 @@ namespace mlp {
             SWITCH3
         };
 
-
     private:
 
         moodycamel::ReaderWriterQueue<TapId> tapQ;
@@ -41,6 +40,8 @@ namespace mlp {
             }
 
             for (unsigned int i=0; i<numFrames; ++i) {
+                *output = 0.f;
+                *(output + 1) = 0.f;
                 kernel.ProcessFrame(input, output);
             }
         }
