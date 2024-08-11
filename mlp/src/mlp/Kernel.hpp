@@ -2,11 +2,10 @@
 
 #include <array>
 
-#include "../Constants.hpp"
+// #include "../Constants.hpp"
 
 namespace mlp {
     typedef unsigned long int frame_t;
-
 
     //------------------------------------------------
     // simplistic phasor that counts frames
@@ -46,10 +45,9 @@ namespace mlp {
             LOOPING,
         };
 
-        State state {State::STOPPED};
+        State state{State::STOPPED};
 
-        void StartRecord(frame_t offset = 0)
-        {
+        void StartRecord(frame_t offset = 0) {
             state = State::SETTING;
             writeActive = true;
         }
@@ -58,7 +56,8 @@ namespace mlp {
         {
             state = State::LOOPING;
             readActive = true;
-            if (!shouldDub) {
+            if (!shouldDub)
+            {
                 writeActive = false;
             }
             phasor.maxFrame = phasor.currentFrame;
@@ -69,6 +68,13 @@ namespace mlp {
         {
             writeActive = !writeActive;
             return writeActive;
+        }
+
+        void Stop()
+        {
+            readActive = false;
+            writeActive = false;
+            state = State::STOPPED;
         }
 
         // return true if the loop wraps after this frame
@@ -93,12 +99,13 @@ namespace mlp {
             phasor.currentFrame = 0;
         }
 
-        void SetMaxFrame (frame_t aFrameIndex) {
+        void SetMaxFrame(frame_t aFrameIndex) {
             phasor.maxFrame = aFrameIndex;
         }
     };
 
-    // encapsulates all audio processing and control logic
+    //==============================================
+    //==== core processor
     class Kernel {
 
     public:
@@ -107,14 +114,14 @@ namespace mlp {
         static constexpr unsigned int numLayers = 4;
 
     private:
-        std::array<LoopLayer<numChannels, bufferFrames>, numLayers> layer;
+        typedef LoopLayer<numChannels, bufferFrames> Layer;
+        std::array<Layer, numLayers> layer;
 
         int currentLayer{0};
 
         // non-interleaved stereo buffers
-        //typedef std::array<float, bufferFrames> ChannelBuffer;
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
-        std::array<LayerBuffer, numLayers> buffers;
+        std::array<LayerBuffer, numLayers> buffers{};
 
     public:
 
@@ -124,20 +131,19 @@ namespace mlp {
             }
         }
 
-        // process a single interleaved audio frame
-        void ProcessFrame(float *&src, float *&dst) {
+        // process a single *stereo interleaved* audio frame
+        void ProcessFrame(const float *&src, float *&dst) {
             float x[2];
             float y[2];
             x[0] = *src++;
             x[1] = *src++;
             for (int i = 0; i < numLayers; ++i) {
                 if (layer[i].ProcessFrame(x, y)) {
-                    //currentLayer = i;
-                    if (i > 0)
-                    {
-                        // different behaviors are possible here
-                        // for now, each layer always acts as a master sync generator for the layer below it
-                        layer[i-1].Reset();
+                    // the loop has wrapped around (next frame will fall at loop start)
+                    // different behaviors/modes are possible here
+                    // for now, each layer after the first, resets the layer below it
+                    if (i > 0) {
+                        layer[i - 1].Reset();
                     }
                 }
             }
@@ -145,31 +151,46 @@ namespace mlp {
             *dst++ = y[1];
         }
 
-        // process an interleaved block of audio samples
-        void ProcessBlock(float *input, float *output) {
-            float *src = input;
-            float *dst = output;
-            for (int i = 0; i < Constants::VECTORS_PER_BLOCK; i++) {
-                for (int j = 0; j < Constants::FRAMES_PER_VECTOR; j++) {
-                    ProcessFrame(src, dst);
-                }
-            }
-        }
-
         //------------------------------------------------
-        //-- controls
-        void StartLayerRecord()
-        {
-            if (++currentLayer >= numLayers)
-            {
-                // out of layers!
+        //-- control
+
+        // first action: opens/closes the loop, advances the layer
+        void TapLoop() {
+            if (currentLayer >= numLayers) {
+                // out of layers. for now, don't do anything
+                // (TODO: maybe "re-cut" the last layer's loop)
                 return;
             }
 
-            layer[currentLayer].writeActive = true;
-
+            switch (layer[currentLayer].state) {
+                case Layer::State::STOPPED:
+                    layer[currentLayer].StartRecord();
+                    break;
+                case Layer::State::SETTING:
+                    layer[currentLayer].FinishRecord();
+                    break;
+                case Layer::State::LOOPING:
+                    // advance to the next layer and start over
+                    ++currentLayer;
+                    TapLoop();
+                    break;
+            }
         }
 
+        void ToggleOverdub() {
+            if (currentLayer >= 0 && currentLayer < numLayers)
+                layer[currentLayer].ToggleWrite();
+        }
 
+        void StopClear()
+        {
+            if (currentLayer > )
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                if (currentLayer < 0 || currentLayer >= numLayers)
+                    return;
+                layer[currentLayer].Stop();
+                currentLayer--;
+            }
+        }
     };
 }
