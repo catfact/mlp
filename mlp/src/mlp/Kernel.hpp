@@ -2,8 +2,6 @@
 
 #include <array>
 
-// #include "../Constants.hpp"
-
 namespace mlp {
     typedef unsigned long int frame_t;
 
@@ -15,7 +13,7 @@ namespace mlp {
         frame_t maxFrame{1000};
 
         // return true if the phasor has wrapped
-        bool Tick() {
+        bool Advance() {
             if (++currentFrame >= maxFrame) {
                 currentFrame = 0;
                 return true;
@@ -35,9 +33,9 @@ namespace mlp {
         bool writeActive;
         bool readActive;
 
-        float playLevel;
-        float recordLevel;
-        float preserveLevel;
+        float playLevel {1.f};
+        float recordLevel {1.f};
+        float preserveLevel {1.f};
 
         enum class State {
             STOPPED,
@@ -47,38 +45,34 @@ namespace mlp {
 
         State state{State::STOPPED};
 
-        void StartRecord(frame_t offset = 0) {
+        void OpenLoop(frame_t offset = 0) {
             state = State::SETTING;
             writeActive = true;
         }
 
-        void FinishRecord(bool shouldDub = false)
-        {
+        void CloseLoop(bool shouldDub = false) {
             state = State::LOOPING;
             readActive = true;
-            if (!shouldDub)
-            {
+            if (!shouldDub) {
                 writeActive = false;
             }
             phasor.maxFrame = phasor.currentFrame;
             phasor.currentFrame = 0;
         }
 
-        bool ToggleWrite()
-        {
+        bool ToggleWrite() {
             writeActive = !writeActive;
             return writeActive;
         }
 
-        void Stop()
-        {
+        void Stop() {
             readActive = false;
             writeActive = false;
             state = State::STOPPED;
         }
 
         // return true if the loop wraps after this frame
-        bool ProcessFrame(float *src, float *dst) {
+        bool ProcessFrame(const float *src, float *dst) {
             auto bufIdx = (phasor.currentFrame + frameOffset) % bufferFrames;
             if (readActive) {
                 for (int ch = 0; ch < numChannels; ++ch) {
@@ -92,7 +86,7 @@ namespace mlp {
             }
             dst += numChannels;
             src += numChannels;
-            return phasor.Tick();
+            return phasor.Advance();
         };
 
         void Reset() {
@@ -164,10 +158,10 @@ namespace mlp {
 
             switch (layer[currentLayer].state) {
                 case Layer::State::STOPPED:
-                    layer[currentLayer].StartRecord();
+                    layer[currentLayer].OpenLoop();
                     break;
                 case Layer::State::SETTING:
-                    layer[currentLayer].FinishRecord();
+                    layer[currentLayer].CloseLoop();
                     break;
                 case Layer::State::LOOPING:
                     // advance to the next layer and start over
@@ -182,15 +176,16 @@ namespace mlp {
                 layer[currentLayer].ToggleWrite();
         }
 
-        void StopClear()
-        {
-            if (currentLayer > )
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                if (currentLayer < 0 || currentLayer >= numLayers)
-                    return;
-                layer[currentLayer].Stop();
-                currentLayer--;
+        void StopClear() {
+            if (currentLayer >= numLayers) {
+                currentLayer = numLayers - 1;
+                StopClear();
+                return;
             }
+            if (currentLayer >= 0) {
+                layer[currentLayer].Stop();
+            }
+            currentLayer--;
         }
     };
 }

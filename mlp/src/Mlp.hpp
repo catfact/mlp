@@ -8,11 +8,13 @@ namespace mlp {
     // main API for the audio effect
 
     class Mlp {
+    public:
         enum class TapId: int {
             SWITCH1,
             SWITCH2,
             SWITCH3
         };
+
 
     private:
 
@@ -21,9 +23,8 @@ namespace mlp {
         Kernel kernel;
 
     public:
-        void ProcessAudioBlock(float *buf, unsigned int numFrames) {
+        void ProcessAudioBlock(const float *input, float* output, unsigned int numFrames) {
 
-            // loop over pending tap events
             TapId tapId;
             while (tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
@@ -39,10 +40,8 @@ namespace mlp {
                 }
             }
 
-            const float* src = buf;
-            float* dst = buf;
             for (unsigned int i=0; i<numFrames; ++i) {
-                kernel.ProcessFrame(src, dst);
+                kernel.ProcessFrame(input, output);
             }
         }
 
