@@ -1,7 +1,14 @@
 #include <iostream>
-#include <rtaudio/RtAudio.h>
-#include <lo/lo_cpp.h>
 #include <thread>
+#include <memory>
+
+#include <rtaudio/RtAudio.h>
+//#include <lo/lo_cpp.h>
+
+#include "osc/OscReceivedElements.h"
+#include "osc/OscPacketListener.h"
+#include "ip/UdpSocket.h"
+
 
 #include "../Mlp.hpp"
 
@@ -11,11 +18,15 @@ Mlp m;
 RtAudio adac;
 
 static const int oscPort = 9000;
+static std::unique_ptr<UdpListeningReceiveSocket> rxSocket;
+static std::unique_ptr<std::thread> rxThread;
+
 static volatile bool shouldQuit = false;
 static volatile bool isMonoInput = false;
 
 static std::vector<float> stereoBuffer;
 
+//-----------------------------------------------------------------------------------
 int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames, double streamTime,
                    RtAudioStreamStatus status, void *userData) {
 
@@ -56,33 +67,7 @@ int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
 #endif
 }
 
-int InitOsc() {
-    lo::ServerThread st(oscPort);
-    if (!st.is_valid()) {
-        std::cout << "failed to create OSC server on port " << oscPort << std::endl;
-        return 1;
-    }
-
-//    st.set_callbacks([&st]() { printf("OSC server thread init: %p.\n", &st); },
-//                     []() { printf("OSC server thread cleanup.\n"); });
-
-    std::cout << "OSC URL: " << st.url() << std::endl;
-
-    st.add_method("tap", "i", [](lo_arg **argv, int) {
-        int idx = argv[0]->i;
-        std::cout << "tap " << idx << std::endl;
-        m.Tap(static_cast<Mlp::TapId>(idx));
-    });
-
-    st.add_method("quit", "i", [](lo_arg **argv, int) {
-        std::cout << "quit " << std::endl;
-        shouldQuit = true;
-    });
-
-    st.start();
-    return 0;
-}
-
+//-----------------------------------------------------------------------------------
 int InitAudio() {
     RtAudio::StreamParameters iParams, oParams;
     iParams.deviceId = adac.getDefaultInputDevice();
@@ -124,18 +109,61 @@ int InitAudio() {
 }
 
 
-int main() {
+//-----------------------------------------------------------------------------------
 
-    if (InitOsc()) {
-        return 1;
+class OscListener: public osc::OscPacketListener {
+protected:
+    void ProcessMessage(const osc::ReceivedMessage &m, const IpEndpointName &remoteEndpoint) override {
+        (void) remoteEndpoint; // suppress unused parameter warning
+
+        try {
+            if (std::strcmp(m.AddressPattern(), "/tap") == 0) {
+                osc::ReceivedMessageArgumentStream args = m.ArgumentStream();
+                int idx;
+                args >> idx >> osc::EndMessage;
+                std::cout << "tap " << idx << std::endl;
+
+            } else if (std::strcmp(m.AddressPattern(), "/quit") == 0) {
+                std::cout << "quit" << std::endl;
+                shouldQuit = true;
+            }
+        } catch (osc::Exception &e) {
+            std::cout << "error while parsing message: "
+                      << m.AddressPattern() << ": " << e.what() << "\n";
+        }
     }
+};
+int InitOsc() {
+    OscListener listener;
 
+    rxSocket = std::make_unique<UdpListeningReceiveSocket>(
+            IpEndpointName( IpEndpointName::ANY_ADDRESS, oscPort ),
+            &listener );
+
+    std::cout << "listening for input on port " << oscPort << "...\n";
+
+    rxThread = std::make_unique<std::thread>([&] {
+        rxSocket->RunUntilSigInt();
+    });
+    std::cout << "ok";
+
+    return 0;
+}
+
+//-----------------------------------------------------------------------------------
+int main() {
     if (InitAudio()) {
         return 1;
     }
 
+    if (InitOsc()) {
+        /// FIXME: ^ doesn't return...
+        return 1;
+    }
     while (!shouldQuit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        constexpr int waitMs = 100;
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitMs));
+        // std::cout << "main loop wakeup" << std::endl;
     }
 
     return 0;

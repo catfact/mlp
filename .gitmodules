@@ -1,0 +1,3 @@
+[submodule "mlp/extern/oscpack"]
+	path = mlp/extern/oscpack
+	url = git@github.com:catfact/oscpack.git

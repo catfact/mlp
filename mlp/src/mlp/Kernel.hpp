@@ -95,10 +95,6 @@ namespace mlp {
         void Reset() {
             phasor.currentFrame = 0;
         }
-
-        void SetMaxFrame(frame_t aFrameIndex) {
-            phasor.maxFrame = aFrameIndex;
-        }
     };
 
     //==============================================
