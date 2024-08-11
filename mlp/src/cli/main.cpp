@@ -99,6 +99,7 @@ int InitAudio() {
         adac.openStream(&oParams, &iParams, RTAUDIO_FLOAT32, 44100, &bufferFrames, &AudioCallback, &m,
                         &options);
         adac.startStream();
+        std::cout << "started audio device stream " << std::endl;
     } catch (RtAudioError &e) {
 
         e.printMessage();
@@ -113,28 +114,30 @@ int InitAudio() {
 
 class OscListener: public osc::OscPacketListener {
 protected:
-    void ProcessMessage(const osc::ReceivedMessage &m, const IpEndpointName &remoteEndpoint) override {
+    void ProcessMessage(const osc::ReceivedMessage &msg, const IpEndpointName &remoteEndpoint) override {
         (void) remoteEndpoint; // suppress unused parameter warning
 
         try {
-            if (std::strcmp(m.AddressPattern(), "/tap") == 0) {
-                osc::ReceivedMessageArgumentStream args = m.ArgumentStream();
+            if (std::strcmp(msg.AddressPattern(), "/tap") == 0) {
+                osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
                 int idx;
                 args >> idx >> osc::EndMessage;
                 std::cout << "tap " << idx << std::endl;
+                m.Tap(static_cast<Mlp::TapId>(idx));
 
-            } else if (std::strcmp(m.AddressPattern(), "/quit") == 0) {
+            } else if (std::strcmp(msg.AddressPattern(), "/quit") == 0) {
                 std::cout << "quit" << std::endl;
                 shouldQuit = true;
             }
         } catch (osc::Exception &e) {
             std::cout << "error while parsing message: "
-                      << m.AddressPattern() << ": " << e.what() << "\n";
+                      << msg.AddressPattern() << ": " << e.what() << "\n";
         }
     }
 };
+static OscListener listener;
+
 int InitOsc() {
-    OscListener listener;
 
     rxSocket = std::make_unique<UdpListeningReceiveSocket>(
             IpEndpointName( IpEndpointName::ANY_ADDRESS, oscPort ),
@@ -145,7 +148,7 @@ int InitOsc() {
     rxThread = std::make_unique<std::thread>([&] {
         rxSocket->RunUntilSigInt();
     });
-    std::cout << "ok";
+    rxThread->detach();
 
     return 0;
 }
@@ -157,13 +160,12 @@ int main() {
     }
 
     if (InitOsc()) {
-        /// FIXME: ^ doesn't return...
         return 1;
     }
+
     while (!shouldQuit) {
         constexpr int waitMs = 100;
         std::this_thread::sleep_for(std::chrono::milliseconds(waitMs));
-        // std::cout << "main loop wakeup" << std::endl;
     }
 
     return 0;

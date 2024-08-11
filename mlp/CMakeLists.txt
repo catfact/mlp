@@ -38,18 +38,9 @@ ADD_LIBRARY(oscpack
 )
 target_include_directories(oscpack PUBLIC extern/oscpack)
 
-
 add_executable(mlp-cli src/cli/main.cpp)
 
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_LOCAL})
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_SYSTEM})
 target_link_directories(mlp-cli PUBLIC ${LINK_DIRS})
 target_link_libraries(mlp-cli PUBLIC oscpack rtaudio)
-
-#------------------------------------------------
-#
-#add_executable(lo-test src/lo-test.cpp)
-#target_include_directories(lo-test PUBLIC ${INCLUDE_DIRS_LOCAL})
-#target_include_directories(lo-test PUBLIC ${INCLUDE_DIRS_SYSTEM})
-#target_link_directories(lo-test PUBLIC ${LINK_DIRS})
-#target_link_libraries(lo-test PUBLIC lo)

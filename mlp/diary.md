@@ -29,8 +29,10 @@ ready to test actual processing, i stepped in a rabbit hole:
 - with `oscpack` i can receive messages (yay.) but, it triggers an assertion because numerical type definitions are wrong for this architecture (boo)
 - so i have quickly forked `oscpack` and hacked in a fix. now i must waste a little more time learning its API and porting the POC...
 
-... finished the port, OSC reception seems ok. crashing somewhere in audio stack...
+... finished the port, OSC reception seems ok. crashing somewhere...
+
+... fixed crash, fixed layer-reset logic, fixed layer-stop logic. things seem to be working as expected; next up is building out more features (particularly de-clicking crossfades.) 
 
 **NTS**: design-wise, i would love to be able to dynamically re-define things like layer-sync behavior, tap logic etc to be definable in lua or some other scripting language. but, it's a special challenge to have user-defined script executed on realtime audio thread, and i've yet to build a system that does this well. (have looked at e.g. cockos EEL2, and the possibility of lua with granular control of GC, but the fact is that i don't really enjoy software enough to want to solve those problems.)
 
-**time**: ~2hrs
+**time**: ~3hrs

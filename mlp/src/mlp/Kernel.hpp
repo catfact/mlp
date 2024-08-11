@@ -1,6 +1,9 @@
 #pragma once
 
 #include <array>
+#include <limits>
+
+
 
 namespace mlp {
     typedef unsigned long int frame_t;
@@ -10,7 +13,7 @@ namespace mlp {
     struct FramePhasor {
         frame_t currentFrame{0};
         // exclusive maximum frame count
-        frame_t maxFrame{1000};
+        frame_t maxFrame{std::numeric_limits<frame_t>::max()};
 
         // return true if the phasor has wrapped
         bool Advance() {
@@ -48,6 +51,9 @@ namespace mlp {
         void OpenLoop(frame_t offset = 0) {
             state = State::SETTING;
             writeActive = true;
+            std::cout << "opened loop" << std::endl;
+            /// FIXME: should store the current position of the next-lowest layer,
+            /// so it can be set as the new offset for that layer when we close this loop
         }
 
         void CloseLoop(bool shouldDub = false) {
@@ -58,10 +64,12 @@ namespace mlp {
             }
             phasor.maxFrame = phasor.currentFrame;
             phasor.currentFrame = 0;
+            std::cout << "closed loop; length = " << phasor.maxFrame << std::endl;
         }
 
         bool ToggleWrite() {
             writeActive = !writeActive;
+            std::cout << "toggled write, new state = " << writeActive << std::endl;
             return writeActive;
         }
 
@@ -69,6 +77,7 @@ namespace mlp {
             readActive = false;
             writeActive = false;
             state = State::STOPPED;
+            std::cout << "stopped loop" << std::endl;
         }
 
         // return true if the loop wraps after this frame
@@ -76,15 +85,22 @@ namespace mlp {
             if (state == State::STOPPED) {
                 return false;
             }
-            auto bufIdx = (phasor.currentFrame + frameOffset) % bufferFrames;
+            // auto bufIdx = (phasor.currentFrame + frameOffset) % bufferFrames;
+            auto bufIdx = (phasor.currentFrame + frameOffset) % phasor.maxFrame;
             if (readActive) {
                 for (int ch = 0; ch < numChannels; ++ch) {
                     *(dst + ch) += buffer[bufIdx] * playLevel;
                 }
-                if (writeActive) {
-                    for (int ch = 0; ch < numChannels; ++ch) {
-                        buffer[bufIdx] = *(src + ch) * recordLevel + buffer[bufIdx] * preserveLevel;
-                    }
+            }
+
+            if (writeActive) {
+                for (int ch = 0; ch < numChannels; ++ch) {
+                    float x = *(src + ch);
+                    x *= recordLevel;
+                    float fb = buffer[bufIdx];
+                    fb *= preserveLevel;
+                    x += fb;
+                    buffer[bufIdx] = x;
                 }
             }
             dst += numChannels;
@@ -115,6 +131,8 @@ namespace mlp {
         // non-interleaved stereo buffers
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
         std::array<LayerBuffer, numLayers> buffer{};
+
+        frame_t lastLayerPositionAtLoopStart;
 
     public:
 
@@ -156,17 +174,32 @@ namespace mlp {
             if (currentLayer >= numLayers) {
                 // out of layers. for now, don't do anything
                 // (TODO: maybe "re-cut" the last layer's loop)
+                std::cout << "TapLoop(): out of layers" << std::endl;
                 return;
             }
 
             switch (layer[currentLayer].state) {
                 case Layer::State::STOPPED:
+                    std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
+                    if (currentLayer > 0)
+                    {
+                        lastLayerPositionAtLoopStart = layer[currentLayer - 1].phasor.currentFrame;
+                    }
                     break;
                 case Layer::State::SETTING:
+                    std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
+                    if (currentLayer > 0)
+                    {
+                        layer[currentLayer - 1].frameOffset = lastLayerPositionAtLoopStart;
+                        // this _should_ result in gapless playback on the target layer...
+                        // but worth checking
+                        layer[currentLayer - 1].Reset();
+                    }
                     break;
                 case Layer::State::LOOPING:
+                    std::cout << "TapLoop(): advancing layer; current = " << currentLayer << std::endl;
                     // advance to the next layer and start over
                     ++currentLayer;
                     TapLoop();
@@ -175,20 +208,29 @@ namespace mlp {
         }
 
         void ToggleOverdub() {
+            std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers)
                 layer[currentLayer].ToggleWrite();
         }
 
         void StopClear() {
+            std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             if (currentLayer >= numLayers) {
+                std::cout << "(selecting last layer)" << std::endl;
                 currentLayer = numLayers - 1;
                 StopClear();
                 return;
             }
             if (currentLayer >= 0) {
+                std::cout << "(stopping current layer)" << std::endl;
                 layer[currentLayer].Stop();
+                currentLayer--;
+                if (currentLayer < 0) {
+                    // we stopped the first layer, so set up to use it for the next loop definition
+                    currentLayer = 0;
+                }
+                std::cout << "stopped layer and decremented selection; current = " << currentLayer << std::endl;
             }
-            currentLayer--;
         }
     };
 }
