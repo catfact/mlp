@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "Phasor.hpp"
 #include "Types.hpp"
 
@@ -22,6 +24,7 @@ namespace mlp {
         float playLevel{1.f};
         float recordLevel{1.f};
         float preserveLevel{1.f};
+        bool stopPending;
 
         enum class State {
             STOPPED,
@@ -35,6 +38,7 @@ namespace mlp {
             state = State::SETTING;
             writeActive = true;
             phasor[currentPhasor].Reset();
+            startOffset = offset;
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
 
@@ -63,10 +67,16 @@ namespace mlp {
         }
 
         void Stop() {
-            readActive = false;
-            writeActive = false;
-            state = State::STOPPED;
-            std::cout << "[LoopLayer] stopped loop" << std::endl;
+//            readActive = false;
+//            writeActive = false;
+//            state = State::STOPPED;
+//            std::cout << "[LoopLayer] stopped loop" << std::endl;
+            stopPending = true;
+            for (auto &thePhasor: phasor) {
+                if (thePhasor.isActive) {
+                    thePhasor.isFadingOut = true;
+                }
+            }
         }
 
         // given a phasor, read from the buffer according to its frame position,
@@ -76,7 +86,7 @@ namespace mlp {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = phasor.currentFrame % bufferFrames;
             for (int ch = 0; ch < numChannels; ++ch) {
-                *(dst + ch) += buffer[(bufIdx*numChannels)+ch] * phasor.fadeValue;
+                *(dst + ch) += buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue;
             }
         }
 
@@ -93,7 +103,7 @@ namespace mlp {
                 /// but probably not this
                 fb *= preserveLevel * (1.f - phasor.fadeValue);
                 x += fb;
-                buffer[(bufIdx*numChannels)+ch] = x;
+                buffer[(bufIdx * numChannels) + ch] = x;
             }
         }
 
@@ -116,21 +126,33 @@ namespace mlp {
                     }
                 }
             }
-            dst += numChannels;
-            src += numChannels;
 
             assert(lastPhasor != currentPhasor);
 
             phasor[lastPhasor].Advance();
-            bool wrapped = phasor[currentPhasor].Advance();
-            if (wrapped)
+            auto result = phasor[currentPhasor].Advance();
+            switch (result)
             {
-                std::cout << "[LoopLayer] current phasor wrapped; reset last phasor and switch" << std::endl;
-                phasor[lastPhasor].Reset();
-                lastPhasor = currentPhasor;
-                currentPhasor ^= 1;
+                case FadePhasor::AdvanceResult::INACTIVE:
+                case FadePhasor::AdvanceResult::CONTINUING:
+                case FadePhasor::AdvanceResult::DONE_FADEIN:
+                    return false;
+                case FadePhasor::AdvanceResult::DONE_FADEOUT:
+                    if (stopPending) {
+                        readActive = false;
+                        writeActive = false;
+                        state = State::STOPPED;
+                        stopPending = false;
+                        std::cout << "[LoopLayer] stopped loop" << std::endl;
+                    }
+                    return false;
+                case FadePhasor::AdvanceResult::WRAPPED:
+                    // std::cout << "[LoopLayer] phasor wrapped; reset last phasor and switch" << std::endl;
+                    phasor[lastPhasor].Reset();
+                    lastPhasor = currentPhasor;
+                    currentPhasor ^= 1;
+                    return true;
             }
-            return wrapped;
         };
 
         void Reset() {

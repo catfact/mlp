@@ -35,7 +35,8 @@ namespace mlp {
         Kernel() {
             // FIXME: not an efficient design
             // we're giving each layer a full audio buffer, sized to maximum loop length
-            // we *should* use one long buffer, and dynamically assign pointers into it as loops are set
+            // we *should* use one long buffer,
+            // and dynamically assign pointers into it as loops are set
             for (int i = 0; i < numLayers; ++i) {
                 buffer[i].fill(0.f);
                 layer[i].buffer = buffer[i].data();
@@ -53,6 +54,8 @@ namespace mlp {
                     // the loop has wrapped around (next frame will fall at loop start)
                     // different behaviors/modes are possible here
                     // for now, each layer after the first, resets the layer below it
+                    // this means that the most recent loop will effectively set the period of all loops
+                    // and "peeling back" a layer will make the next-lowest layer into the new loop
                     if (i > 0) {
                         layer[i - 1].Reset();
                     }

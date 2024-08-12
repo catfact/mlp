@@ -7,7 +7,17 @@ namespace mlp {
 //------------------------------------------------
 // simplistic  phasor including crossfade
 // for now, just counts integer frames in one direction
-    struct FadePhasor {
+    class FadePhasor {
+    public:
+
+        enum class AdvanceResult {
+            INACTIVE,
+            CONTINUING,
+            WRAPPED,
+            DONE_FADEOUT,
+            DONE_FADEIN
+        };
+
         frame_t currentFrame{0};
         frame_t maxFrame{std::numeric_limits<frame_t>::max()};
         bool isFadingIn{false};
@@ -15,19 +25,23 @@ namespace mlp {
         bool isActive{false};
         float fadePhase{0.f};
         float fadeIncrement{0.01f};
-        float fadeValue{0.f};;
+        float fadeValue{0.f};
 
         // return true if the phasor has wrapped
-        bool Advance() {
+        AdvanceResult Advance() {
             if (!isActive) {
-                return false;
+                return AdvanceResult::INACTIVE;
             }
+
+            AdvanceResult result = AdvanceResult::CONTINUING;
+
             if (isFadingIn) {
                 fadePhase += fadeIncrement;
                 if (fadePhase >= 1.f) {
                     fadePhase = 1.f;
                     isFadingIn = false;
                     fadeValue = 1.f;
+                    result = AdvanceResult::DONE_FADEIN;
                 } else {
                     fadeValue = sinf(fadePhase * static_cast<float>(M_PI_2));
                 }
@@ -39,19 +53,18 @@ namespace mlp {
                     fadeValue = 0.f;
                     isFadingOut = false;
                     isActive = false;
-                    std::cout << "[FadePhasor] finished fadeout" << std::endl;
+                    result = AdvanceResult::DONE_FADEOUT;
                 } else {
                     fadeValue = sinf(fadePhase * static_cast<float>(M_PI_2));
                 }
             }
             if (++currentFrame >= maxFrame) {
                 if (!isFadingOut) {
-                    std::cout << "[FadePhasor] wrapped; start fadeout" << std::endl;
+                    result = AdvanceResult::WRAPPED;
                     isFadingOut = true;
                 }
-                return true;
             }
-            return false;
+            return result;
         }
 
         void Reset(frame_t position = 0) {
