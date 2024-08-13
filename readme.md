@@ -33,7 +33,7 @@ the "stop" command stops the topmost layer playing. this has the interesting eff
 
 ## roadmap
 
-i intend to continue adding features to `mlp` and to port it to other platforms. there is no particular timeline for this, nor are my final goals very clear. but as a devlopment exercise, i intend to work quickly to put it in a musically useful state, and to focus on refinements that i find most necessary. the following goals are fairly definite, and not overly ambitious:
+i intend to continue adding features to `mlp` and to port it to other platforms. there is no particular timeline for this, nor are my final goals very clear. but as a development exercise, i intend to work quickly to put it in a musically useful state, and to focus on refinements that i find most necessary. the following goals are fairly definite, and not overly ambitious:
 
 ### audio features
 
@@ -54,3 +54,9 @@ i intend to continue adding features to `mlp` and to port it to other platforms.
 - DAW plugin wrapper
 - daisy seed/patch/petal wrapper
 - norns script
+
+--------
+
+please feel free to leave feedback, suggestions or issue reports on the github repo, though i do not promise to respond to everything in detail.
+
+if this and similar projects seem useful, also consider [sponsoring](https://github.com/sponsors/catfact) me on github - this directly improves my capacity for making useful free/open-source software.
