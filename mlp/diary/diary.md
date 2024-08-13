@@ -3,7 +3,7 @@
 
 thinking about loopers again. i'd like to try one with a "multiply" feature. this is an exercise, so  approach it minimally, focusing on supporting only the feature under investigation. (at first.) 
 
-the "multiply" operation on a loop is perhaps most familiar / defining as appears in the oberheim/gibson "echoplex digital pro." various flavors of the feature have appeared in loop pedals, but rarely with much flexibility. so this looper will focus managing multiple loop layers with various heuristics for synchronization and layer management.
+the "multiply" operation on a loop is perhaps most familiar / defining as appears in the oberheim/gibson "echoplex digital pro." various flavors of the feature have appeared in loop pedals, but rarely with much flexibility. so this looper will focus onmanaging multiple loop layers with various heuristics for synchronization and layer management.
 
 began conceptualizing this in supercollider, added `mlp.scd` with stubs. but now i'm not sure SC seems right: things like data transfer between .ar/.kr/logic parts of code, are clunky and imprecise. leaning towards either a graph-based prototype, or straight to c++.
 
@@ -39,11 +39,12 @@ implemented crossfading, which seems to be working after a couple bugs. next iss
 
 - (1) when closing a loop, we immediately update the frame offset for the previous layer, causing a click
 - (2) enabling/disabling write/read for a layer is still done by setting a boolean, causing a click
-- (3) stopping a layer likewise is a boolean operation that
+- (3) stopping a layer likewise is a boolean operation that causes a click
+- 
 ... ok, (1) seems fixed
 ... ok actually threw in a fix for (3) as well.
 
-(2) calls for the general addition of smoothed parameters, probably updated at vector rate, so that seems like a good starting place for next ses2n.
+(2) calls for the general addition of smoothed parameters, probably updated at vector rate, so that seems like a good starting place for next session.
 
 ... ok, added "smoothed switches" for overdubbing and muting layers. didn't yet get to more general smoothed parameters or exposing more OSC controls. probably next time.
 
