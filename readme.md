@@ -25,6 +25,13 @@ and it responds to the following OSC messages:
   - 2: toggle muting of the current layer (which continues to update its loop position and trigger syncs.)
   - 3: stop the current layer
   
+- `/param {int} {float`: change a parameter value. the integer argument is the parameter index:
+  - 0: preserve level (during overdub)
+  - 1: record level
+  - 2: playback level
+
+at present these affect the currently selected layer. (viz., the most recently set loop that is still playing.)
+
 - `/quit`: stop the program
 
 the primary feature of `mlp` is that wrapping on a loop layer can trigger a reset-to-start on a different layer. the current behavior is that when a layer reaches the endpoint of its loop, it triggers a reset to the start of the loop for the layer below it. this is a simple way to create a "multiply" effect, where the topmost layer acts as a "leader" and specifies the loop length for the layers below it.

@@ -54,6 +54,20 @@ also wrote a readme and spent a bit more time on this diary.
 
 # 2024/8/13
 
-messed around with project configuration so that `mlp-cli` can be self-contained: added rtaudio as submodule so we can force it to build static libraries. also got codesigning set up.
+messed around with project configuration so that `mlp-cli` can be self-contained: added rtaudio as submodule so we can force it to build static libraries. also got codesigning set up. posted a v0.0.0 release with the bare minimium of features, and a signed macOS build. (mostly to test if that works for people.)
 
-**time**: ~1hr
+added setters and OSC controls for parameters. (preserve level during overdub, record level, playback level.) these affect the current layer only.
+
+next block tasks, in no particular order:
+- add explicit layer selection
+- add at least minimal stereo positioning
+- tweak the behavior of "set loop" tap when all layers are used (wrap and re-set?)
+
+and likely the next block after that:
+- timed taps (optionally map duration to fade time)
+- MIDI / keybinding
+- conf file
+- varispeed
+- iplug2 or juce wrapper
+
+**time**: ~1.5hr
