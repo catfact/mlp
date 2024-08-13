@@ -31,7 +31,7 @@ ready to test actual processing, i stepped in a rabbit hole:
 
 **NTS**: design-wise, i would love to be able to dynamically re-define things like layer-sync behavior, tap logic etc., to be definable in lua or some other scripting language. but, it's a special challenge to have user-defined script executed on realtime audio thread, and i've yet to build a system that does this well. (have looked at e.g. cockos EEL2, and the possibility of lua with granular control of GC, but the fact is that i don't really enjoy software enough to want to solve those problems.)
 
-**time**: ~3hrs
+**time**: ~3hr
 
 # 2024/8/12
 
@@ -45,4 +45,8 @@ implemented crossfading, which seems to be working after a couple bugs. next iss
 
 (2) calls for the general addition of smoothed parameters, probably updated at vector rate, so that seems like a good starting place for next ses2n.
 
-**time**: ~2hr
+... ok, added "smoothed switches" for overdubbing and muting layers. didn't yet get to more general smoothed parameters or exposing more OSC controls. probably next time.
+
+also wrote a readme and spent a bit more time on this diary.
+
+**time**: ~3.5hr
