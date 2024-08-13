@@ -3,7 +3,7 @@ project(mlp)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(INCLUDE_DIRS_LOCAL src src/cli src/mlp extern extern/oscpack)
+set(INCLUDE_DIRS_LOCAL src src/mlp-cli src/mlp extern extern/oscpack)
 set(INCLUDE_DIRS_SYSTEM /opt/local/include /usr/local/include)
 set(LINK_DIRS /opt/local/lib /usr/local/lib)
 
@@ -38,7 +38,7 @@ ADD_LIBRARY(oscpack
 )
 target_include_directories(oscpack PUBLIC extern/oscpack)
 
-add_executable(mlp-cli src/cli/main.cpp)
+add_executable(mlp-cli src/mlp-cli/main.cpp)
 
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_LOCAL})
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_SYSTEM})

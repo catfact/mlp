@@ -1,22 +1,22 @@
 #pragma once
 
+#include "Constants.hpp"
 #include "Types.hpp"
 
 namespace mlp {
 
-//------------------------------------------------
+    enum class PhasorAdvanceResult {
+        INACTIVE,
+        CONTINUING,
+        WRAPPED,
+        DONE_FADEOUT,
+        DONE_FADEIN
+    };
+
+    //------------------------------------------------
 // simplistic  phasor including crossfade
 // for now, just counts integer frames in one direction
-    class FadePhasor {
-    public:
-
-        enum class AdvanceResult {
-            INACTIVE,
-            CONTINUING,
-            WRAPPED,
-            DONE_FADEOUT,
-            DONE_FADEIN
-        };
+    struct FadePhasor {
 
         frame_t currentFrame{0};
         frame_t maxFrame{std::numeric_limits<frame_t>::max()};
@@ -28,12 +28,12 @@ namespace mlp {
         float fadeValue{0.f};
 
         // return true if the phasor has wrapped
-        AdvanceResult Advance() {
+        PhasorAdvanceResult Advance() {
             if (!isActive) {
-                return AdvanceResult::INACTIVE;
+                return PhasorAdvanceResult::INACTIVE;
             }
 
-            AdvanceResult result = AdvanceResult::CONTINUING;
+            PhasorAdvanceResult result = PhasorAdvanceResult::CONTINUING;
 
             if (isFadingIn) {
                 fadePhase += fadeIncrement;
@@ -41,9 +41,9 @@ namespace mlp {
                     fadePhase = 1.f;
                     isFadingIn = false;
                     fadeValue = 1.f;
-                    result = AdvanceResult::DONE_FADEIN;
+                    result = PhasorAdvanceResult::DONE_FADEIN;
                 } else {
-                    fadeValue = sinf(fadePhase * static_cast<float>(M_PI_2));
+                    fadeValue = sinf(fadePhase * pi_2<float>);
                 }
             }
             if (isFadingOut) {
@@ -53,14 +53,14 @@ namespace mlp {
                     fadeValue = 0.f;
                     isFadingOut = false;
                     isActive = false;
-                    result = AdvanceResult::DONE_FADEOUT;
+                    result = PhasorAdvanceResult::DONE_FADEOUT;
                 } else {
-                    fadeValue = sinf(fadePhase * static_cast<float>(M_PI_2));
+                    fadeValue = sinf(fadePhase * pi_2<float>);
                 }
             }
             if (++currentFrame >= maxFrame) {
                 if (!isFadingOut) {
-                    result = AdvanceResult::WRAPPED;
+                    result = PhasorAdvanceResult::WRAPPED;
                     isFadingOut = true;
                 }
             }
@@ -74,7 +74,7 @@ namespace mlp {
             isFadingOut = false;
             isFadingIn = true;
             isActive = true;
-            std::cout << "[FadePhasor] reset to position " << position << std::endl;
+            // std::cout << "[FadePhasor] reset to position " << position << std::endl;
         }
     };
 

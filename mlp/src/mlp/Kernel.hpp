@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <limits>
 
 #include "LoopLayer.hpp"
@@ -53,9 +54,9 @@ namespace mlp {
                 if (layer[i].ProcessFrame(x, y)) {
                     // the loop has wrapped around (next frame will fall at loop start)
                     // different behaviors/modes are possible here
-                    // for now, each layer after the first, resets the layer below it
-                    // this means that the most recent loop will effectively set the period of all loops
-                    // and "peeling back" a layer will make the next-lowest layer into the new loop
+                    // for now: each layer after the first resets the layer below it
+                    // this means that the most recent loop is effectively the "leader,"
+                    // determining the period of all loops
                     if (i > 0) {
                         layer[i - 1].Reset();
                     }
@@ -78,7 +79,7 @@ namespace mlp {
             }
 
             switch (layer[currentLayer].state) {
-                case Layer::State::STOPPED:
+                case LoopLayerState::STOPPED:
                     std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
                     if (currentLayer > 0)
@@ -86,7 +87,7 @@ namespace mlp {
                         lastLayerPositionAtLoopStart = layer[currentLayer - 1].GetCurrentFrame();
                     }
                     break;
-                case Layer::State::SETTING:
+                case LoopLayerState::SETTING:
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     if (currentLayer > 0)
@@ -95,7 +96,7 @@ namespace mlp {
                         layer[currentLayer - 1].Reset();
                     }
                     break;
-                case Layer::State::LOOPING:
+                case LoopLayerState::LOOPING:
                     std::cout << "TapLoop(): advancing layer; current = " << currentLayer << std::endl;
                     // advance to the next layer and start over
                     ++currentLayer;
@@ -108,6 +109,13 @@ namespace mlp {
             std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers)
                 layer[currentLayer].ToggleWrite();
+        }
+
+
+        void ToggleMute() {
+            std::cout << "ToggleMute(): layer = " << currentLayer << std::endl;
+            if (currentLayer >= 0 && currentLayer < numLayers)
+                layer[currentLayer].ToggleRead();
         }
 
         void StopClear() {

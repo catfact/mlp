@@ -12,7 +12,8 @@ namespace mlp {
         enum class TapId: int {
             SWITCH1,
             SWITCH2,
-            SWITCH3
+            SWITCH3,
+            SWITCH4
         };
 
     private:
@@ -34,6 +35,9 @@ namespace mlp {
                         kernel.ToggleOverdub();
                         break;
                     case TapId::SWITCH3:
+                        kernel.ToggleMute();
+                        break;
+                    case TapId::SWITCH4:
                         kernel.StopClear();
                         break;
                 }

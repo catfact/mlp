@@ -39,9 +39,10 @@ implemented crossfading, which seems to be working after a couple bugs. next iss
 
 - (1) when closing a loop, we immediately update the frame offset for the previous layer, causing a click
 - (2) enabling/disabling write/read for a layer is still done by setting a boolean, causing a click
-- (3) stopping a layer likewise is a boolean operation causing a click 
+- (3) stopping a layer likewise is a boolean operation that
+... ok, (1) seems fixed
+... ok actually threw in a fix for (3) as well.
 
+(2) calls for the general addition of smoothed parameters, probably updated at vector rate, so that seems like a good starting place for next ses2n.
 
-... ok, (1) seems fixed at any rate. adding more smoothing and envelopes seems like a good starting place for next session.
-
-**time**: ~1.5hr
+**time**: ~2hr

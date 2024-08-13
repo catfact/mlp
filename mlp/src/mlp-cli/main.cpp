@@ -2,22 +2,29 @@
 #include <thread>
 #include <memory>
 
+/// rtaudio
 #include <rtaudio/RtAudio.h>
-//#include <lo/lo_cpp.h>
 
+/// oscpack
 #include "osc/OscReceivedElements.h"
 #include "osc/OscPacketListener.h"
 #include "ip/UdpSocket.h"
 
-
 #include "../Mlp.hpp"
 
+static const int oscPort = 9000;
+
+/// ok for release builds:
+// static const int blockSize = 32;
+// debug needs a bigger block...
+static const int blockSize = 512;
+
 using namespace mlp;
+
 
 Mlp m;
 RtAudio adac;
 
-static const int oscPort = 9000;
 static std::unique_ptr<UdpListeningReceiveSocket> rxSocket;
 static std::unique_ptr<std::thread> rxThread;
 
@@ -28,7 +35,7 @@ static std::vector<float> stereoBuffer;
 
 //-----------------------------------------------------------------------------------
 int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames, double streamTime,
-                   RtAudioStreamStatus status, void *userData) {
+                  RtAudioStreamStatus status, void *userData) {
 
 #if 0 // dummy check sinewave
     static const float twopi = 2 * 3.14159265358979323846f;
@@ -76,7 +83,7 @@ int InitAudio() {
     oParams.nChannels = 2;
 
     auto inputDeviceInfo = adac.getDeviceInfo(iParams.deviceId);
-    auto inch =inputDeviceInfo.inputChannels;
+    auto inch = inputDeviceInfo.inputChannels;
     if (inch < 2) {
         if (inch < 1) {
             std::cerr << "no input channels available!" << std::endl;
@@ -86,20 +93,21 @@ int InitAudio() {
             isMonoInput = true;
             iParams.nChannels = 1;
             // make resizing less likely by allocating a good amount upfront
-            stereoBuffer.resize(1<<12);
+            stereoBuffer.resize(1 << 12);
         }
     }
 
     RtAudio::StreamOptions options;
-//    options.flags = RTAUDIO_SCHEDULE_REALTIME;
-//    options.priority = 90;
+    options.flags = RTAUDIO_SCHEDULE_REALTIME;
+    options.priority = 90;
 
-    unsigned int bufferFrames = 512;
+    unsigned int bufferFrames = blockSize;
     try {
         adac.openStream(&oParams, &iParams, RTAUDIO_FLOAT32, 44100, &bufferFrames, &AudioCallback, &m,
                         &options);
         adac.startStream();
         std::cout << "started audio device stream " << std::endl;
+        std::cout << "buffer size = " << bufferFrames << std::endl;
     } catch (RtAudioError &e) {
 
         e.printMessage();
@@ -112,7 +120,7 @@ int InitAudio() {
 
 //-----------------------------------------------------------------------------------
 
-class OscListener: public osc::OscPacketListener {
+class OscListener : public osc::OscPacketListener {
 protected:
     void ProcessMessage(const osc::ReceivedMessage &msg, const IpEndpointName &remoteEndpoint) override {
         (void) remoteEndpoint; // suppress unused parameter warning
@@ -135,13 +143,14 @@ protected:
         }
     }
 };
+
 static OscListener listener;
 
 int InitOsc() {
 
     rxSocket = std::make_unique<UdpListeningReceiveSocket>(
-            IpEndpointName( IpEndpointName::ANY_ADDRESS, oscPort ),
-            &listener );
+            IpEndpointName(IpEndpointName::ANY_ADDRESS, oscPort),
+            &listener);
 
     std::cout << "listening for input on port " << oscPort << "...\n";
 
