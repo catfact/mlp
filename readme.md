@@ -6,7 +6,7 @@ multi-layer loop pedal
 
 ---
 
-mlp is a multi-layer loop pedal, loosely inspired by the "unquantized multiply" function on the 1994 gibson/oberheim "echoplex digital pro." 
+`mlp` is a multi-layer loop pedal, loosely inspired by the "unquantized multiply" function on the 1994 gibson/oberheim "echoplex digital pro." 
 
 at present, this repo includes `mlp-cli`, a standalone, cross-platform audio/OSC program.
 
@@ -27,7 +27,7 @@ and it responds to the following OSC messages:
   
 - `/quit`: stop the program
 
-the primary feature of `mlp` is that layers can trigger each other. the current behavior is that when a layer reaches the endpoint of its loop, it triggers a reset to the start of the loop for the layer below it. this is a simple way to create a "multiply" effect, where the topmost layer acts as a "leader" and specifies the loop length for the layers below it.
+the primary feature of `mlp` is that wrapping on a loop layer can trigger a reset-to-start on a different layer. the current behavior is that when a layer reaches the endpoint of its loop, it triggers a reset to the start of the loop for the layer below it. this is a simple way to create a "multiply" effect, where the topmost layer acts as a "leader" and specifies the loop length for the layers below it.
 
 the "stop" command stops the topmost layer playing. this has the interesting effect of also changing the total loop length - the next-lowest layer is now the leader.
 
