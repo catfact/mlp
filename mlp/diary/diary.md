@@ -51,3 +51,9 @@ implemented crossfading, which seems to be working after a couple bugs. next iss
 also wrote a readme and spent a bit more time on this diary.
 
 **time**: ~3.5hr
+
+# 2024/8/13
+
+messed around with project configuration so that `mlp-cli` can be self-contained: added rtaudio as submodule so we can force it to build static libraries. also got codesigning set up.
+
+**time**: ~1hr
