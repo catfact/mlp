@@ -3,7 +3,7 @@
 #include <memory>
 
 /// rtaudio
-#include <rtaudio/RtAudio.h>
+#include "RtAudio.h"
 
 /// oscpack
 #include "osc/OscReceivedElements.h"
@@ -105,9 +105,9 @@ int InitAudio() {
         adac.startStream();
         std::cout << "started audio device stream " << std::endl;
         std::cout << "buffer size = " << bufferFrames << std::endl;
-    } catch (RtAudioError &e) {
+    } catch (std::exception &e) {
 
-        e.printMessage();
+        //e.printMessage();
         return 1;
     }
 

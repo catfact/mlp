@@ -3,7 +3,7 @@ project(mlp)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(INCLUDE_DIRS_LOCAL src src/mlp-cli src/mlp extern extern/oscpack)
+set(INCLUDE_DIRS_LOCAL src src/mlp-cli src/mlp extern extern/oscpack extern/rtaudio)
 set(INCLUDE_DIRS_SYSTEM /opt/local/include /usr/local/include)
 set(LINK_DIRS /opt/local/lib /usr/local/lib)
 
@@ -14,7 +14,7 @@ ELSE(WIN32)
     set(IpSystemTypePath ip/posix)
 ENDIF(WIN32)
 
-ADD_LIBRARY(oscpack
+ADD_LIBRARY(oscpack STATIC
         extern/oscpack/ip/IpEndpointName.h
         extern/oscpack/ip/IpEndpointName.cpp
         extern/oscpack/ip/NetworkingUtils.h
@@ -37,6 +37,12 @@ ADD_LIBRARY(oscpack
         extern/oscpack/osc/OscOutboundPacketStream.cpp
 )
 target_include_directories(oscpack PUBLIC extern/oscpack)
+
+set(RTAUDIO_BUILD_STATIC_LIBS TRUE)
+if ( ${APPLE})
+    set(RTAUDIO_API_JACK FALSE)
+endif()
+add_subdirectory(extern/rtaudio)
 
 add_executable(mlp-cli src/mlp-cli/main.cpp)
 
