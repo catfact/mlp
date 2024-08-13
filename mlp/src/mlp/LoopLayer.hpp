@@ -30,7 +30,7 @@ namespace mlp {
         SmoothSwitch writeSwitch;
         SmoothSwitch readSwitch;
 
-        float playLevel{1.f};
+        float playbackLevel{1.f};
         float recordLevel{1.f};
         float preserveLevel{1.f};
 

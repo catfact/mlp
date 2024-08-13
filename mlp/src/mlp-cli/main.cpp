@@ -129,7 +129,13 @@ protected:
                 args >> idx >> osc::EndMessage;
                 std::cout << "tap " << idx << std::endl;
                 m.Tap(static_cast<Mlp::TapId>(idx));
-
+            } else if (std::strcmp(msg.AddressPattern(), "/param") == 0) {
+                osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
+                int idx;
+                float value;
+                args >> idx >> value >> osc::EndMessage;
+                std::cout << "param " << idx << " " << value << std::endl;
+                m.ParamChange(static_cast<Mlp::ParamId>(idx), value);
             } else if (std::strcmp(msg.AddressPattern(), "/quit") == 0) {
                 std::cout << "quit" << std::endl;
                 shouldQuit = true;

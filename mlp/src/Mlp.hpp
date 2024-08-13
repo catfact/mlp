@@ -13,15 +13,27 @@ namespace mlp {
         /// give these meaningful names when API is more stable
         /// (same goes for OSC paths)
         enum class TapId: int {
-            SWITCH1,
-            SWITCH2,
-            SWITCH3,
-            SWITCH4
+            SetLoop,
+            ToggleOverdub,
+            ToggleMute,
+            StopLoop
+        };
+
+        enum class ParamId: int {
+            PreserveLevel,
+            RecordLevel,
+            PlaybackLevel,
+        };
+
+        struct ParamChangeRequest {
+            ParamId id;
+            float value;
         };
 
     private:
 
         moodycamel::ReaderWriterQueue<TapId> tapQ;
+        moodycamel::ReaderWriterQueue<ParamChangeRequest> paramQ;
 
         Kernel kernel;
 
@@ -31,17 +43,32 @@ namespace mlp {
             TapId tapId;
             while (tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
-                    case TapId::SWITCH1:
-                        kernel.TapLoop();
+                    case TapId::SetLoop:
+                        kernel.SetLoopTap();
                         break;
-                    case TapId::SWITCH2:
+                    case TapId::ToggleOverdub:
                         kernel.ToggleOverdub();
                         break;
-                    case TapId::SWITCH3:
+                    case TapId::ToggleMute:
                         kernel.ToggleMute();
                         break;
-                    case TapId::SWITCH4:
-                        kernel.StopClear();
+                    case TapId::StopLoop:
+                        kernel.StopLoop();
+                        break;
+                }
+            }
+
+            ParamChangeRequest paramChangeRequest;
+            while (paramQ.try_dequeue(paramChangeRequest)) {
+                switch (paramChangeRequest.id) {
+                    case ParamId::PreserveLevel:
+                        kernel.SetPreserveLevel(paramChangeRequest.value);
+                        break;
+                    case ParamId::RecordLevel:
+                        kernel.SetRecordLevel(paramChangeRequest.value);
+                        break;
+                    case ParamId::PlaybackLevel:
+                        kernel.SetPlaybackLevel(paramChangeRequest.value);
                         break;
                 }
             }
@@ -55,6 +82,10 @@ namespace mlp {
 
         void Tap(TapId tapId) {
             tapQ.enqueue(tapId);
+        }
+
+        void ParamChange(ParamId id, float value) {
+            paramQ.enqueue({id, value});
         }
 
     };
