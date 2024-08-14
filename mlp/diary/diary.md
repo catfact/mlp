@@ -113,4 +113,6 @@ added this stuff to the main kernel / API, but haven't yet ~~added OSC glue~~ or
 
 ...added glue code for all the above. still haven't really tested, it needs a bit more of a proper interface for OSC tx.
 
-**time**: ~2hr
+... partially updated the test supercollider script with GUI. my refactoring seems to have introduced some bugs in loop set/reset logic... 
+
+**time**: ~2.5hr
