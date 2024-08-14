@@ -88,5 +88,9 @@ namespace mlp {
             paramQ.enqueue({id, value});
         }
 
+        void SelectLayer(int layerIndex) {
+            kernel.SelectLayer(layerIndex);
+        }
+
     };
 }

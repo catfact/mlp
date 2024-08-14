@@ -18,32 +18,46 @@ namespace mlp {
     // a simple multichannel play/record structure
     template<int numChannels, frame_t bufferFrames>
     struct LoopLayer {
-        std::array<FadePhasor, 2> phasor;
-        int currentPhasor{0};
-        int lastPhasor{1};
-
-        frame_t startOffset;
+        ///---- the audio buffer!
         float *buffer;
 
-//        bool writeActive;
-//        bool readActive;
+        //--- sub-processors
+        std::array<FadePhasor, 2> phasor;
         SmoothSwitch writeSwitch;
         SmoothSwitch readSwitch;
 
+        ///--- runtime state
+        LoopLayerState state{LoopLayerState::STOPPED};
+        bool stopPending{false};
+        int currentPhasorIndex{0};
+        int lastPhasorIndex{1};
+
+        ///---- parameters
+        // jump to this frame on external reset
+        frame_t resetFrame{0};
+        // jump to this frame when the loop finishes
+        frame_t loopStartFrame{0};
+        // frame on which to wrap
+        frame_t loopEndFrame{bufferFrames - 1};
+
+        /// levels
         float playbackLevel{1.f};
         float recordLevel{1.f};
         float preserveLevel{1.f};
 
-        bool stopPending;
+        /// behavior flags
+        bool loopEnabled{true};
+        bool syncLastLayer{true};
 
+        void OpenLoop(frame_t startFrame=0) {
+            loopStartFrame = startFrame;
+            if (resetFrame < loopStartFrame) {
+                resetFrame = loopStartFrame;
+            }
 
-        LoopLayerState state{LoopLayerState::STOPPED};
-
-        void OpenLoop(frame_t offset = 0) {
             state = LoopLayerState::SETTING;
             SetWriteActive(true);
-            phasor[currentPhasor].Reset();
-            startOffset = offset;
+            phasor[currentPhasorIndex].Reset();
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
 
@@ -51,15 +65,15 @@ namespace mlp {
             state = LoopLayerState::LOOPING;
             SetReadActive(shouldUnmute);
             SetWriteActive(shouldDub);
-            lastPhasor = currentPhasor;
-            currentPhasor ^= 1;
+            lastPhasorIndex = currentPhasorIndex;
+            currentPhasorIndex ^= 1;
 
-            auto &oldPhasor = phasor[lastPhasor];
-            auto &newPhasor = phasor[currentPhasor];
+            auto &oldPhasor = phasor[lastPhasorIndex];
+            auto &newPhasor = phasor[currentPhasorIndex];
 
             newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
-            newPhasor.Reset();
+            newPhasor.Reset(loopStartFrame);
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
@@ -105,7 +119,7 @@ namespace mlp {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = phasor.currentFrame % bufferFrames;
             for (int ch = 0; ch < numChannels; ++ch) {
-                *(dst + ch) += buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level;
+                *(dst + ch) += buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level * playbackLevel;
             }
         }
 
@@ -154,10 +168,10 @@ namespace mlp {
                 }
             }
 
-            assert(lastPhasor != currentPhasor);
+            assert(lastPhasorIndex != currentPhasorIndex);
 
-            phasor[lastPhasor].Advance();
-            auto result = phasor[currentPhasor].Advance();
+            phasor[lastPhasorIndex].Advance();
+            auto result = phasor[currentPhasorIndex].Advance();
             switch (result)
             {
                 case PhasorAdvanceResult::INACTIVE:
@@ -174,23 +188,51 @@ namespace mlp {
                     }
                     return false;
                 case PhasorAdvanceResult::WRAPPED:
-                    phasor[lastPhasor].Reset();
-                    lastPhasor = currentPhasor;
-                    currentPhasor ^= 1;
+                    if (loopEnabled) {
+                        lastPhasorIndex = currentPhasorIndex;
+                        currentPhasorIndex ^= 1;
+                        phasor[currentPhasorIndex].Reset(loopStartFrame);
+                    }
                     return true;
             }
         };
 
         void Reset() {
-            lastPhasor = currentPhasor;
-            currentPhasor ^= 1;
-            phasor[currentPhasor].maxFrame = phasor[lastPhasor].maxFrame;
-            phasor[lastPhasor].isFadingOut = true;
-            phasor[currentPhasor].Reset(startOffset);
+            lastPhasorIndex = currentPhasorIndex;
+            currentPhasorIndex ^= 1;
+            phasor[currentPhasorIndex].maxFrame = loopEndFrame;
+            phasor[lastPhasorIndex].isFadingOut = true;
+            phasor[currentPhasorIndex].Reset(resetFrame);
+        }
+
+        void Reset(frame_t frame) {
+            SetResetFrame(frame);
+            Reset();
         }
 
         frame_t GetCurrentFrame() const {
-            return phasor[currentPhasor].currentFrame;
+            return phasor[currentPhasorIndex].currentFrame;
+        }
+
+        void SetResetFrame(frame_t frame) {
+            resetFrame = frame;
+            if (resetFrame > loopEndFrame) {
+                resetFrame = loopEndFrame;
+            }
+            if (resetFrame < loopStartFrame) {
+                resetFrame = loopStartFrame;
+            }
+        }
+
+        void SetLoopPoints(frame_t startFrame, frame_t endFrame) {
+            loopStartFrame = startFrame;
+            for (auto &thePhasor: phasor) {
+                thePhasor.maxFrame = endFrame;
+            }
+        }
+
+        void SetSyncLastLayer(bool sync) {
+            syncLastLayer = sync;
         }
     };
 

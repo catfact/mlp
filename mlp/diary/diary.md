@@ -71,3 +71,40 @@ and likely the next block after that:
 - iplug2 or juce wrapper
 
 **time**: ~1.5hr
+
+# 2024/8/14
+
+### some random thoughts
+
+- i don't want to futz around with more platforms at the moment, i want to focus on the osc/cli version, to nail down the functionality. i also don't want to mess with embedding an interpreter for controller bindings and configuration. the benefits to this focus are clear, but t also has downsides:
+  - harder to distribute / collaborate with non-developers
+  - danger of feature creep when there is no UI to guide the design
+  - more components / potential time-sinks to manage (like the liblo/oscpack rabbit hole)
+
+so, i think it's important to keep a final UI in mind. for now assuming compatiblity with Daisy Petal. i will also add a simple supercollider interface patch including MIDI responders, in lieu of adding rtmidi (or something) to the c++ project.
+
+- "insert" mode. for some reason not something i've been drawn to in the past. but this is about trying things out, so i'd like to do it. my implem idea so far is something like:
+    - each layer has an optional "pause frame." when reaching this, it pauses itself and triggers another layer to start. 
+    - the other layer doesn't loop when reaching its loop endpoint, but rather triggers the first layer to resume.
+    - when closing a loop in "insert" mode, the close position becomes the pause frame for the last layer.
+
+- again, the key to the design is behavior 
+
+- i do want to add varispeed writes. considering the resampling-window-collision problem and wondering if there is a more effective way to handle it than was done for _softcut_. viz., without adding a gap of N samples between the read and write heads. the main thing that comes to mind would be to keep a little extra buffer space for the interpolated writes, and "finalize" those changes to the main buffer once the read head has passed. and the follow-on concern there is what happens when rates are modulated arbitrarily.
+
+### changes
+
+added this stuff to the main kernel / API, but haven't yet added OSC glue or tested anything:
+
+- added explicit layer selection
+- cleaned up and clarified "loop start frame" versus "reset frame"
+- added setters for loop start/end/reset
+- added "loop enable" (1shot mode)
+- add "sync last layer" flag (for disengaging "multiply" mode and engaging "async" mode)
+
+**TODO**: 
+- need to tweak the way layer selection is advanced on closing loop. (it should be advanced on _opening_ instead, i would think)
+- also would like a mode flag where layer selection not advanced, only set explicitly, and loop open/close just re-sets the loop endpoints for the current layer 
+- some OSC queries and callbacks would be nice. (query loop positions, callback for layer selection, callback for loop wrap? etc)
+
+**time**: ~1hr

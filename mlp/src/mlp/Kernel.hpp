@@ -54,11 +54,13 @@ namespace mlp {
                 if (layer[i].ProcessFrame(x, y)) {
                     // the loop has wrapped around (next frame will fall at loop start)
                     /// TODO: different behaviors/modes are possible here
-                    /// for now: each layer after the first resets the layer below it
+                    /// for now: each layer after the first optionally resets the layer below it
                     /// this means that the most recent loop is effectively the "leader,"
                     /// determining the period of all loops
                     if (i > 0) {
-                        layer[i - 1].Reset();
+                        if (layer[i].syncLastLayer) {
+                            layer[i - 1].Reset();
+                        }
                     }
                 }
             }
@@ -93,7 +95,7 @@ namespace mlp {
                     // std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     if (currentLayer > 0) {
-                        layer[currentLayer - 1].startOffset = lastLayerPositionAtLoopStart;
+                        layer[currentLayer - 1].resetFrame = lastLayerPositionAtLoopStart;
                         layer[currentLayer - 1].Reset();
                     }
                     break;
@@ -159,6 +161,22 @@ namespace mlp {
                 layerIndex = currentLayer;
             }
             layer[layerIndex].playbackLevel = level;
+        }
+
+        void SelectLayer(int layerIndex) {
+            currentLayer = layerIndex;
+        }
+
+        void SetLoopPoints(frame_t start, frame_t end) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].SetLoopPoints(start, end);
+            }
+        }
+
+        void SetStartOffset(frame_t offset) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].resetFrame = offset;
+            }
         }
     };
 }
