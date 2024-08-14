@@ -94,17 +94,25 @@ so, i think it's important to keep a final UI in mind. for now assuming compatib
 
 ### changes
 
-added this stuff to the main kernel / API, but haven't yet added OSC glue or tested anything:
+added this stuff to the main kernel / API, but haven't yet ~~added OSC glue~~ or tested anything:
 
 - added explicit layer selection
 - cleaned up and clarified "loop start frame" versus "reset frame"
 - added setters for loop start/end/reset
 - added "loop enable" (1shot mode)
 - add "sync last layer" flag (for disengaging "multiply" mode and engaging "async" mode)
+- add explicit commands to reset current layer / any layer
+- add fade time control
+- tweak the way layer selection is advanced (now on loop open when appropriate)
+- layer advance now wraps around
 
 **TODO**: 
-- need to tweak the way layer selection is advanced on closing loop. (it should be advanced on _opening_ inste ad, i would think)
+
 - also would like a mode flag where layer selection not advanced, only set explicitly, and loop open/close just re-sets the loop endpoints for the current layer 
 - some OSC queries and callbacks would be nice. (query loop positions, callback for layer selection, callback for loop wrap? etc)
 
-**time**: ~1hr
+...added glue code for all the above. still haven't really tested, it needs a bit more of a proper interface for OSC tx.
+
+
+
+**time**: ~2hr
