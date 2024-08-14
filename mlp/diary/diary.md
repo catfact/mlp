@@ -103,7 +103,7 @@ added this stuff to the main kernel / API, but haven't yet added OSC glue or tes
 - add "sync last layer" flag (for disengaging "multiply" mode and engaging "async" mode)
 
 **TODO**: 
-- need to tweak the way layer selection is advanced on closing loop. (it should be advanced on _opening_ instead, i would think)
+- need to tweak the way layer selection is advanced on closing loop. (it should be advanced on _opening_ inste ad, i would think)
 - also would like a mode flag where layer selection not advanced, only set explicitly, and loop open/close just re-sets the loop endpoints for the current layer 
 - some OSC queries and callbacks would be nice. (query loop positions, callback for layer selection, callback for loop wrap? etc)
 

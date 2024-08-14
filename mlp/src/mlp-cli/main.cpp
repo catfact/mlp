@@ -130,12 +130,38 @@ protected:
                 std::cout << "tap " << idx << std::endl;
                 m.Tap(static_cast<Mlp::TapId>(idx));
             } else if (std::strcmp(msg.AddressPattern(), "/param") == 0) {
-                osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
-                int idx;
-                float value;
-                args >> idx >> value >> osc::EndMessage;
-                std::cout << "param " << idx << " " << value << std::endl;
-                m.ParamChange(static_cast<Mlp::ParamId>(idx), value);
+
+                osc::ReceivedMessage::const_iterator arg = msg.ArgumentsBegin();
+                int idx = arg++->AsInt32();
+                if (arg->IsFloat())
+                {
+                    float value = arg->AsFloat();
+                    std::cout << "float param " << idx << " " << value << std::endl;
+                    m.FloatParamChange(static_cast<Mlp::FloatParamId>(idx), value);
+                }
+                else if (arg->IsInt64())
+                {
+                    auto value = arg->AsInt64();
+                    std::cout << "index param " << idx << " " << value << std::endl;
+                    m.IndexParamChange(static_cast<Mlp::IndexParamId>(idx), value);
+                }
+                else if (arg->IsBool())
+                {
+                    auto value = arg->AsBool();
+                    std::cout << "bool param " << idx << " " << value << std::endl;
+                    m.BoolParamChange(static_cast<Mlp::BoolParamId>(idx), value);
+                }
+                else
+                {
+                    std::cout << "unknown param type" << std::endl;
+                }
+
+//.               osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
+//                int idx;
+//                float value;
+//                args >> idx >> value >> osc::EndMessage;
+//                std::cout << "float param " << idx << " " << value << std::endl;
+//                m.FloatParamChange(static_cast<Mlp::FloatParamId>(idx), value);
             } else if (std::strcmp(msg.AddressPattern(), "/quit") == 0) {
                 std::cout << "quit" << std::endl;
                 shouldQuit = true;

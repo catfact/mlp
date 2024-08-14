@@ -223,16 +223,10 @@ namespace mlp {
                 resetFrame = loopStartFrame;
             }
         }
-
-        void SetLoopPoints(frame_t startFrame, frame_t endFrame) {
-            loopStartFrame = startFrame;
+        void SetFadeIncrement(float increment) {
             for (auto &thePhasor: phasor) {
-                thePhasor.maxFrame = endFrame;
+                thePhasor.fadeIncrement = increment;
             }
-        }
-
-        void SetSyncLastLayer(bool sync) {
-            syncLastLayer = sync;
         }
     };
 

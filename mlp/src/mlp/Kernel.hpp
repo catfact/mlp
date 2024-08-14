@@ -30,6 +30,7 @@ namespace mlp {
         std::array<LayerBuffer, numLayers> buffer{};
 
         frame_t lastLayerPositionAtLoopStart;
+        bool advanceLayerOnNextTap{false};
 
     public:
 
@@ -73,18 +74,21 @@ namespace mlp {
 
         // first action: opens/closes the loop, advances the layer
         void SetLoopTap() {
+            if (advanceLayerOnNextTap) {
+                std::cout << "SetLoopTap(): advancing layer" << std::endl;
+                if (++currentLayer >= numLayers) {
+                    std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
+                    currentLayer = 0;
+                }
+                advanceLayerOnNextTap = false;
+            }
             if (currentLayer >= numLayers) {
-                // out of layers. for now, don't do anything
-                /// TODO: something.
-                /// - wrap around to the first layer?
-                /// - stay on the last layer?
-                /// - either way, re-cut the selected layer's loop points?
-                // std::cout << "TapLoop(): out of layers" << std::endl;
                 return;
             }
 
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
+                case LoopLayerState::LOOPING:
                     // std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
                     if (currentLayer > 0) {
@@ -98,13 +102,14 @@ namespace mlp {
                         layer[currentLayer - 1].resetFrame = lastLayerPositionAtLoopStart;
                         layer[currentLayer - 1].Reset();
                     }
+                    advanceLayerOnNextTap = true;
                     break;
-                case LoopLayerState::LOOPING:
+//                case LoopLayerState::LOOPING:
                     // std::cout << "TapLoop(): advancing layer; current = " << currentLayer << std::endl;
                     // advance to the next layer and start over
-                    ++currentLayer;
-                    SetLoopTap();
-                    break;
+//                    currentLayer;
+//                    SetLoopTap();
+//                    break;
             }
         }
 
@@ -167,15 +172,63 @@ namespace mlp {
             currentLayer = layerIndex;
         }
 
-        void SetLoopPoints(frame_t start, frame_t end) {
+//        void SetLoopPoints(frame_t start, frame_t end) {
+//            if (currentLayer >= 0 && currentLayer < numLayers) {
+//                layer[currentLayer].SetLoopPoints(start, end);
+//            }
+//        }
+
+        void SetLoopStartFrame(frame_t start) {
             if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].SetLoopPoints(start, end);
+                layer[currentLayer].loopStartFrame = start;
+                if (layer[currentLayer].resetFrame < layer[currentLayer].loopStartFrame) {
+                    layer[currentLayer].resetFrame = layer[currentLayer].loopStartFrame;
+                }
             }
         }
 
-        void SetStartOffset(frame_t offset) {
+        void SetLoopEndFrame(frame_t end) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].loopEndFrame = end;
+                if (layer[currentLayer].resetFrame > layer[currentLayer].loopEndFrame) {
+                    layer[currentLayer].resetFrame = layer[currentLayer].loopEndFrame;
+                }
+            }
+        }
+
+        void SetLoopResetFrame(frame_t offset) {
             if (currentLayer >= 0 && currentLayer < numLayers) {
                 layer[currentLayer].resetFrame = offset;
+            }
+        }
+
+        void SetSyncLastLayer(bool sync) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].syncLastLayer = sync;
+            }
+        }
+
+        void SetFadeIncrement(float increment) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].SetFadeIncrement(increment);
+            }
+        }
+
+        void SetLoopEnabled(bool enabled) {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].loopEnabled = enabled;
+            }
+        }
+
+        void Reset() {
+            if (currentLayer >= 0 && currentLayer < numLayers) {
+                layer[currentLayer].Reset();
+            }
+        }
+
+        void ResetLayer(int layerIndex) {
+            if (layerIndex >= 0 && layerIndex < numLayers) {
+                layer[layerIndex].Reset();
             }
         }
     };
