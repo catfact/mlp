@@ -3,7 +3,7 @@
 
 thinking about loopers again. i'd like to try one with a "multiply" feature. this is an exercise, so  approach it minimally, focusing on supporting only the feature under investigation. (at first.) 
 
-the "multiply" operation on a loop is perhaps most familiar / defining as appears in the oberheim/gibson "echoplex digital pro." various flavors of the feature have appeared in loop pedals, but rarely with much flexibility. so this looper will focus onmanaging multiple loop layers with various heuristics for synchronization and layer management.
+the "multiply" operation on a loop is perhaps most familiar / defining as appears in the oberheim/gibson "echoplex digital pro." various flavors of the feature have appeared in loop pedals, but rarely with much flexibility. so this looper will focus on managing multiple loop layers with various heuristics for synchronization and layer management.
 
 began conceptualizing this in supercollider, added `mlp.scd` with stubs. but now i'm not sure SC seems right: things like data transfer between .ar/.kr/logic parts of code, are clunky and imprecise. leaning towards either a graph-based prototype, or straight to c++.
 
@@ -76,21 +76,21 @@ and likely the next block after that:
 
 ### some random thoughts
 
-- i don't want to futz around with more platforms at the moment, i want to focus on the osc/cli version, to nail down the functionality. i also don't want to mess with embedding an interpreter for controller bindings and configuration. the benefits to this focus are clear, but t also has downsides:
+- i don't want to futz around with more platforms at the moment, i want to focus on the osc/cli version, to nail down the functionality. i also don't want to mess with embedding an interpreter for controller bindings and configuration. the benefits to this focus are clear, but it also has downsides:
   - harder to distribute / collaborate with non-developers
   - danger of feature creep when there is no UI to guide the design
-  - more components / potential time-sinks to manage (like the liblo/oscpack rabbit hole)
+  - more components / potential time-sinks to manage (like the liblo/oscpack rabbit hole above)
 
-so, i think it's important to keep a final UI in mind. for now assuming compatiblity with Daisy Petal. i will also add a simple supercollider interface patch including MIDI responders, in lieu of adding rtmidi (or something) to the c++ project.
+so, i think it's important to keep a final UI in mind. for now assuming compatibility with Daisy Petal. i will also add a simple supercollider interface patch including MIDI responders, in lieu of adding rtmidi (or something) to the c++ project.
 
 - "insert" mode. for some reason not something i've been drawn to in the past. but this is about trying things out, so i'd like to do it. my implem idea so far is something like:
-    - each layer has an optional "pause frame." when reaching this, it pauses itself and triggers another layer to start. 
-    - the other layer doesn't loop when reaching its loop endpoint, but rather triggers the first layer to resume.
-    - when closing a loop in "insert" mode, the close position becomes the pause frame for the last layer.
+    - each layer has an optional "pause frame." when the active phasor reaches this frame, the layer pauses itself and triggers a different layer to start (probably the one above it.) 
+    - the other layer doesn't loop when reaching its loop endpoint, but rather triggers the first layer (likely below it) to resume.
+    - when closing a loop in "insert" mode, the close position becomes the pause frame for the next-lowest layer.
 
-- again, the key to the design is behavior 
+- again, the key to the design is behavior around what happens when a layer wraps, and how this affects other layers. (reset / pause / resume, etc.) keeping on eye on how this behavior can best be encapsulated, maybe scripted.
 
-- i do want to add varispeed writes. considering the resampling-window-collision problem and wondering if there is a more effective way to handle it than was done for _softcut_. viz., without adding a gap of N samples between the read and write heads. the main thing that comes to mind would be to keep a little extra buffer space for the interpolated writes, and "finalize" those changes to the main buffer once the read head has passed. and the follow-on concern there is what happens when rates are modulated arbitrarily.
+- i do want to add varispeed writes. considering the resampling-window-collision problem and wondering if there is a more effective way to handle it than was done for _softcut_. viz., without adding a gap of N samples between the read and write heads. the main thing that comes to mind would be to keep a little extra buffer space for the interpolated writes, and "finalize" those changes to the main buffer once the read head has passed. (and the follow-on concern there is what happens when rates are modulated arbitrarily...)
 
 ### changes
 
@@ -112,7 +112,5 @@ added this stuff to the main kernel / API, but haven't yet ~~added OSC glue~~ or
 - some OSC queries and callbacks would be nice. (query loop positions, callback for layer selection, callback for loop wrap? etc)
 
 ...added glue code for all the above. still haven't really tested, it needs a bit more of a proper interface for OSC tx.
-
-
 
 **time**: ~2hr
