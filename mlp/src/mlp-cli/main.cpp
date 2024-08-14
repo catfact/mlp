@@ -80,6 +80,10 @@ int InitAudio() {
     oParams.nChannels = 2;
 
     auto inputDeviceInfo = adac.getDeviceInfo(iParams.deviceId);
+    auto outputDeviceInfo = adac.getDeviceInfo(oParams.deviceId);
+    std::cout << "input device: " << inputDeviceInfo.name << std::endl;
+    std::cout << "output device: " << outputDeviceInfo.name << std::endl;
+
     auto inch = inputDeviceInfo.inputChannels;
     if (inch < 2) {
         if (inch < 1) {
@@ -92,6 +96,8 @@ int InitAudio() {
             // make resizing less likely by allocating a good amount upfront
             stereoBuffer.resize(1 << 12);
         }
+    } else {
+        std::cout << "using stereo input" << std::endl;
     }
 
     RtAudio::StreamOptions options;

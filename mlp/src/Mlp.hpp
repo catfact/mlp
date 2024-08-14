@@ -9,9 +9,6 @@ namespace mlp {
 
     class Mlp {
     public:
-        /// pretty silly...
-        /// give these meaningful names when API is more stable
-        /// (same goes for OSC paths)
         enum class TapId: int {
             SetLoop,
             ToggleOverdub,

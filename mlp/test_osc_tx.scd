@@ -1,42 +1,59 @@
 p = 9000;
 a = NetAddr("localhost", p);
 
-~tap_id = Dictionary.with([
+~tap_id = Dictionary.newFrom([
 	\setLoop, 0,
 	\toggleOverdub, 1,
 	\toggleMute, 2,
-	\stop, 3
+	\stop, 3,
 	\reset, 4
 ]);
 
-~tap = { arg key; var id = ~tap_id[key]; a.sendMsg(\tap, id); };
+~tap = { arg k; var id = ~tap_id[k]; a.sendMsg(\tap, id); };
 
-~fparam_id = Dictionary.with([
-	\preserveLevel,
-	\recordLevel,
-	\playbackLevel,
-	\fadeIncrement
+~fparam_id = Dictionary.newFrom([
+	\preserveLevel, 0,
+	\recordLevel, 1,
+	\playbackLevel, 2,
+	\fadeIncrement, 3,
 ]);
 
-~fparam = { arg key, value; var id = ~fparam_id[key]; s.sendMsg(\fparam, id, value); };
+~fparam = { arg k, v; var id = ~fparam_id[k]; s.sendMsg(\fparam, id, v); };
 
-~iparam_id = Dictionary.with([
-	\selectLayer,
-	\resetLayer,
-	\loopStartFrame,
-	\loopEndFrame,
-	\loopResetFrame
+~iparam_id = Dictionary.newFrom([
+	\selectLayer, 0,
+	\resetLayer, 1,
+	\loopStartFrame, 2,
+	\loopEndFrame, 3,
+	\loopResetFrame, 4
 ]);
 
-~iparam = { arg key, value; var id = ~iparam_id[key]; s.sendMsg(\iparam, id, value); };
+~iparam = { arg k, v; var id = ~iparam_id[k]; s.sendMsg(\iparam, id, v); };
 
 
-~bparam_id = Dictionary.with([
-	\syncLastLayer,
-	\loopEnabled
+~bparam_id = Dictionary.newFrom([
+	\syncLastLayer, 0,
+	\loopEnabled, 1
 ]);
 
-~bparam = { arg key, value; var id = ~bparam_id[key]; s.sendMsg(\bparam, id, value); };
+~bparam = { arg k, v; var id = ~bparam_id[k]; s.sendMsg(\bparam, id, v); };
+
+//--------------------------------------------------------
+//--- gui
+
+w = Window("mlp-ctl", Rect(100, 100, 600, 200));
+w.front;
+f = FlowLayout.new(w.view.bounds);
+w.view.decorator = f;
+~tap_id.keys.size.do({ arg i;
+	var k = ~tap_id.findKeyForValue(i);
+	Button(w, 100@30)
+	.states_([[k.asString, Color.black, Color.white]])
+	.action_({ ~tap.value(k); })
+});
+f.nextLine;
+
+
 //
 // a.sendMsg('/tap', 0); // open/close
 // a.sendMsg('/tap', 1); // toggle dub
