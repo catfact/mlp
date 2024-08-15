@@ -228,6 +228,17 @@ namespace mlp {
                 thePhasor.fadeIncrement = increment;
             }
         }
+
+        bool GetIsActive() const {
+            if (state == LoopLayerState::STOPPED) {
+                return false;
+            }
+            if (stopPending) {
+                return false;
+            }
+            return true;
+        }
+
     };
 
 }

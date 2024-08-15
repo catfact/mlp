@@ -23,7 +23,10 @@ namespace mlp {
         typedef LoopLayer<numChannels, bufferFrames> Layer;
         std::array<Layer, numLayers> layer;
 
+        // currently-selected layer index
         int currentLayer{0};
+        // the "innermost" layer doesn't trigger resets on the layer "below" it
+        int innerLayer{0};
 
         // non-interleaved stereo buffers
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
@@ -58,10 +61,9 @@ namespace mlp {
                     /// for now: each layer after the first optionally resets the layer below it
                     /// this means that the most recent loop is effectively the "leader,"
                     /// determining the period of all loops
-                    if (i > 0) {
-                        if (layer[i].syncLastLayer) {
-                            layer[i - 1].Reset();
-                        }
+                    if (layer[i].syncLastLayer && (i != innerLayer)) {
+                        int layerBelow = i > 0 ? i - 1 : (int) numLayers - 1;
+                        layer[layerBelow].Reset();
                     }
                 }
             }
@@ -99,7 +101,7 @@ namespace mlp {
                     advanceLayerOnNextTap = false;
                     break;
                 case LoopLayerState::SETTING:
-                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
+                    std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     if (currentLayer > 0) {
                         layer[currentLayer - 1].resetFrame = lastLayerPositionAtLoopStart;
@@ -132,19 +134,39 @@ namespace mlp {
         void StopLoop() {
             // std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             if (currentLayer >= numLayers) {
-                // std::cout << "(selecting last layer)" << std::endl;
-                currentLayer = numLayers - 1;
-                StopLoop();
-                return;
+                // actually shouldn't happen now
+                assert(false);
+//                // std::cout << "(selecting last layer)" << std::endl;
+//                currentLayer = numLayers - 1;
+//                StopLoop();
+//                return;
             }
+
+            /// FIXME: actually we probably don't need any of these index-in-bounds checks anymore
             if (currentLayer >= 0) {
                 // std::cout << "(stopping current layer)" << std::endl;
                 layer[currentLayer].Stop();
-                if (--currentLayer < 0) {
-                    currentLayer = numLayers - 1;
+
+                /// FIXME: ok, not the most efficient way to check this
+                bool anyLayersActive = false;
+                for (auto &theLayer: layer) {
+                    anyLayersActive |= theLayer.GetIsActive();
                 }
-                std::cout << "stopped layer and decremented selection; current = " << currentLayer << std::endl;
+                if (!anyLayersActive) {
+                    std::cout << "(resetting inner layer)" << std::endl;
+                    innerLayer = currentLayer;
+                } else {
+                    std::cout << "(decrementing selection)" << std::endl;
+                    if (--currentLayer < 0) {
+                        currentLayer = numLayers - 1;
+                    }
+                }
+
+                std::cout << "stopped layer; current = " << currentLayer << std::endl;
             }
+
+            // just making sure...
+            advanceLayerOnNextTap = false;
         }
 
         void SetPreserveLevel(float level, int layerIndex = -1) {
