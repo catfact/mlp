@@ -94,7 +94,7 @@ so, i think it's important to keep a final UI in mind. for now assuming compatib
 
 ### changes
 
-added this stuff to the main kernel / API, but haven't yet ~~added OSC glue~~ or tested anything:
+added this stuff to the main kernel / API:
 
 - added explicit layer selection
 - cleaned up and clarified "loop start frame" versus "reset frame"
@@ -115,4 +115,8 @@ added this stuff to the main kernel / API, but haven't yet ~~added OSC glue~~ or
 
 ... partially updated the test supercollider script with GUI. my refactoring seems to have introduced some bugs in loop set/reset logic... 
 
-**time**: ~2.5hr
+... fixed bug. now, layer selection wraps on advance or stop. 
+
+main thing that feels weird now is that first layer doesn't trigger resets on last layer, but otherwise there is no differentiation between layers or feedback on which is selected, so it seems arbitrary. one remedy might be to say: when all layers are stopped, the next one to start will become the "innermost."
+
+**time**: ~3.5hr

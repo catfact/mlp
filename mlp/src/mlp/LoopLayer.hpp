@@ -71,7 +71,7 @@ namespace mlp {
             auto &oldPhasor = phasor[lastPhasorIndex];
             auto &newPhasor = phasor[currentPhasorIndex];
 
-            newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
+            loopEndFrame = newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
             newPhasor.Reset(loopStartFrame);
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;

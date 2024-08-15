@@ -14,7 +14,11 @@
 
 static const int oscPort = 9000;
 
+#if 0
 static const int blockSize = 64;
+#else // better for debug build:
+static const int blockSize = 2048;
+#endif
 
 using namespace mlp;
 

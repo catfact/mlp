@@ -75,10 +75,12 @@ namespace mlp {
         // first action: opens/closes the loop, advances the layer
         void SetLoopTap() {
             if (advanceLayerOnNextTap) {
-                std::cout << "SetLoopTap(): advancing layer" << std::endl;
+                std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
                 if (++currentLayer >= numLayers) {
                     std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
                     currentLayer = 0;
+                } else {
+                    std::cout << "SetLoopTap(): current layer now = " << currentLayer << std::endl;
                 }
                 advanceLayerOnNextTap = false;
             }
@@ -89,14 +91,15 @@ namespace mlp {
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::LOOPING:
-                    // std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
+                    std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
                     if (currentLayer > 0) {
                         lastLayerPositionAtLoopStart = layer[currentLayer - 1].GetCurrentFrame();
                     }
+                    advanceLayerOnNextTap = false;
                     break;
                 case LoopLayerState::SETTING:
-                    // std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
+                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     if (currentLayer > 0) {
                         layer[currentLayer - 1].resetFrame = lastLayerPositionAtLoopStart;
@@ -137,12 +140,10 @@ namespace mlp {
             if (currentLayer >= 0) {
                 // std::cout << "(stopping current layer)" << std::endl;
                 layer[currentLayer].Stop();
-                currentLayer--;
-                if (currentLayer < 0) {
-                    // we stopped the first layer, so set up to use it for the next loop definition
-                    currentLayer = 0;
+                if (--currentLayer < 0) {
+                    currentLayer = numLayers - 1;
                 }
-                // std::cout << "stopped layer and decremented selection; current = " << currentLayer << std::endl;
+                std::cout << "stopped layer and decremented selection; current = " << currentLayer << std::endl;
             }
         }
 
@@ -188,6 +189,7 @@ namespace mlp {
         }
 
         void SetLoopEndFrame(frame_t end) {
+            std::cout << "SetLoopEndFrame(): layer = " << currentLayer << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers) {
                 layer[currentLayer].loopEndFrame = end;
                 if (layer[currentLayer].resetFrame > layer[currentLayer].loopEndFrame) {
