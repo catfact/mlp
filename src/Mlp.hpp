@@ -34,7 +34,7 @@ namespace mlp {
 
         enum class BoolParamId: int {
             SyncLastLayer,
-            LoopEnabled
+            LoopEnabled,
         };
 
         template <typename Id, typename Value>

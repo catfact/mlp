@@ -35,6 +35,12 @@ namespace mlp {
         frame_t lastLayerPositionAtLoopStart;
         bool advanceLayerOnNextTap{false};
 
+
+        /// mode/behavior flags
+        /// FIXME: maybe encapsulate mode/behavior settings
+        bool clearLayerOnStop{true};
+        bool clearLayerOnSet{true};
+
     public:
 
         Kernel() {
@@ -95,17 +101,23 @@ namespace mlp {
                 case LoopLayerState::LOOPING:
                     std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
-                    if (currentLayer > 0) {
-                        lastLayerPositionAtLoopStart = layer[currentLayer - 1].GetCurrentFrame();
+                    /// FIXME: layers can wrap, zero isn't necessarily inner
+                    if (currentLayer != innerLayer) {
+                        int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
+                        lastLayerPositionAtLoopStart = layer[layerBelow].GetCurrentFrame();
+                    }
+                    if (clearLayerOnSet) {
+                        layer[currentLayer].preserveLevel = 0.f;
                     }
                     advanceLayerOnNextTap = false;
                     break;
                 case LoopLayerState::SETTING:
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
-                    if (currentLayer > 0) {
-                        layer[currentLayer - 1].resetFrame = lastLayerPositionAtLoopStart;
-                        layer[currentLayer - 1].Reset();
+                    if (currentLayer != innerLayer) {
+                        int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
+                        layer[layerBelow].resetFrame = lastLayerPositionAtLoopStart;
+                        layer[layerBelow].Reset();
                     }
                     advanceLayerOnNextTap = true;
                     break;
@@ -133,19 +145,16 @@ namespace mlp {
 
         void StopLoop() {
             // std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
-            if (currentLayer >= numLayers) {
-                // actually shouldn't happen now
-                assert(false);
-//                // std::cout << "(selecting last layer)" << std::endl;
-//                currentLayer = numLayers - 1;
-//                StopLoop();
-//                return;
-            }
+            assert(currentLayer >= 0 && currentLayer < numLayers);
 
             /// FIXME: actually we probably don't need any of these index-in-bounds checks anymore
             if (currentLayer >= 0) {
                 // std::cout << "(stopping current layer)" << std::endl;
                 layer[currentLayer].Stop();
+                if (clearLayerOnStop) {
+                    layer[currentLayer].preserveLevel = 0.f;
+                }
+
 
                 /// FIXME: ok, not the most efficient way to check this
                 bool anyLayersActive = false;
@@ -161,7 +170,6 @@ namespace mlp {
                         currentLayer = numLayers - 1;
                     }
                 }
-
                 std::cout << "stopped layer; current = " << currentLayer << std::endl;
             }
 
@@ -194,12 +202,6 @@ namespace mlp {
         void SelectLayer(int layerIndex) {
             currentLayer = layerIndex;
         }
-
-//        void SetLoopPoints(frame_t start, frame_t end) {
-//            if (currentLayer >= 0 && currentLayer < numLayers) {
-//                layer[currentLayer].SetLoopPoints(start, end);
-//            }
-//        }
 
         void SetLoopStartFrame(frame_t start) {
             if (currentLayer >= 0 && currentLayer < numLayers) {

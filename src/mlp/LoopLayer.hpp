@@ -39,6 +39,8 @@ namespace mlp {
         frame_t loopStartFrame{0};
         // frame on which to wrap
         frame_t loopEndFrame{bufferFrames - 1};
+        // frame on which to trigger something else...
+        frame_t triggerFrame{0};
 
         /// levels
         float playbackLevel{1.f};
@@ -187,13 +189,16 @@ namespace mlp {
                         std::cout << "[LoopLayer] stopped loop" << std::endl;
                     }
                     return false;
-                case PhasorAdvanceResult::WRAPPED:
+                case PhasorAdvanceResult::WRAPPED_LOOP:
                     if (loopEnabled) {
                         lastPhasorIndex = currentPhasorIndex;
                         currentPhasorIndex ^= 1;
                         phasor[currentPhasorIndex].Reset(loopStartFrame);
                     }
                     return true;
+                case PhasorAdvanceResult::CROSSED_TRIGGER:
+                    /// TODO: perform a trigger action?
+                    return false;
             }
         };
 

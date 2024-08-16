@@ -8,7 +8,8 @@ namespace mlp {
     enum class PhasorAdvanceResult {
         INACTIVE,
         CONTINUING,
-        WRAPPED,
+        WRAPPED_LOOP,
+        CROSSED_TRIGGER,
         DONE_FADEOUT,
         DONE_FADEIN
     };
@@ -20,6 +21,7 @@ namespace mlp {
 
         frame_t currentFrame{0};
         frame_t maxFrame{std::numeric_limits<frame_t>::max()};
+        frame_t triggerFrame{0};
         bool isFadingIn{false};
         bool isFadingOut{false};
         bool isActive{false};
@@ -58,9 +60,14 @@ namespace mlp {
                     fadeValue = sinf(fadePhase * pi_2<float>);
                 }
             }
-            if (++currentFrame >= maxFrame) {
+            currentFrame++;
+            if (currentFrame == triggerFrame) {
+                /// FIXME: results need to be a bitfield i suppose
+                // result = PhasorAdvanceResult::CROSSED_TRIGGER;
+            }
+            if (currentFrame >= maxFrame) {
                 if (!isFadingOut) {
-                    result = PhasorAdvanceResult::WRAPPED;
+                    result = PhasorAdvanceResult::WRAPPED_LOOP;
                     isFadingOut = true;
                 }
             }
