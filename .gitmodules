@@ -1,6 +1,6 @@
 [submodule "mlp/extern/oscpack"]
-	path = mlp/extern/oscpack
+	path = extern/oscpack
 	url = git@github.com:catfact/oscpack.git
 [submodule "mlp/extern/rtaudio"]
-	path = mlp/extern/rtaudio
+	path = extern/rtaudio
 	url = https://github.com/thestk/rtaudio.git
