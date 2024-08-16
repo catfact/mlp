@@ -15,7 +15,6 @@ namespace mlp {
     class Kernel {
 
     public:
-        static constexpr frame_t bufferFrames = 1 << 25;
         static constexpr unsigned int numChannels = 2;
         static constexpr unsigned int numLayers = 4;
 

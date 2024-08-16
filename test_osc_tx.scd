@@ -1,57 +1,91 @@
 p = 9000;
 a = NetAddr("localhost", p);
 
-~tap_id = Dictionary.newFrom([
-	\setLoop, 0,
-	\toggleOverdub, 1,
-	\toggleMute, 2,
-	\stop, 3,
-	\reset, 4
-]);
+~maxLoopFrames = 1 << 25;
 
-~tap = { arg k; var id = ~tap_id[k]; a.sendMsg(\tap, id); };
+~tap_id = [
+	\setLoop,
+	\toggleOverdub,
+	\toggleMute,
+	\stop,
+	\reset,
+];
 
-~fparam_id = Dictionary.newFrom([
-	\preserveLevel, 0,
-	\recordLevel, 1,
-	\playbackLevel, 2,
-	\fadeIncrement, 3,
-]);
+~tap = { arg id; a.sendMsg(\tap, id); };
 
-~fparam = { arg k, v; var id = ~fparam_id[k]; s.sendMsg(\fparam, id, v); };
+~fparam_id =[
+	[\preserveLevel, ControlSpec(0, 100, \lin, 0.1)],
+	[\recordLevel, ControlSpec(0, 100, \lin, 0.1)],
+	[\playbackLevel, ControlSpec(0, 100, \lin, 0.1)],
+	[\fadeIncrement, ControlSpec(0, 1, \lin, 0.01)],
+];
 
-~iparam_id = Dictionary.newFrom([
-	\selectLayer, 0,
-	\resetLayer, 1,
-	\loopStartFrame, 2,
-	\loopEndFrame, 3,
-	\loopResetFrame, 4
-]);
+~fparam = { arg id, v; a.sendMsg(\fparam, id, v); };
 
-~iparam = { arg k, v; var id = ~iparam_id[k]; s.sendMsg(\iparam, id, v); };
+~iparam_id = [
+	[\selectLayer, ControlSpec(0, 3, \lin, 1) ],
+	[\resetLayer, ControlSpec(0, 3, \lin, 1) ],
+	[\loopStartFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
+	[\loopEndFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
+	[\loopResetFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ]
+];
 
+~iparam = { arg id, v; a.sendMsg(\iparam, id, v); };
 
-~bparam_id = Dictionary.newFrom([
-	\syncLastLayer, 0,
-	\loopEnabled, 1
-]);
+~bparam_id = [
+	\syncLastLayer,
+	\loopEnabled
+];
 
-~bparam = { arg k, v; var id = ~bparam_id[k]; s.sendMsg(\bparam, id, v); };
+~bparam = { arg id, v; a.sendMsg(\bparam, id, v); };
 
 //--------------------------------------------------------
 //--- gui
 
-w = Window("mlp-ctl", Rect(100, 100, 600, 200));
+w = Window("mlp-ctl", Rect(100, 100, 600, 400));
 w.front;
 f = FlowLayout.new(w.view.bounds);
 w.view.decorator = f;
-~tap_id.keys.size.do({ arg i;
-	var k = ~tap_id.findKeyForValue(i);
+~tap_id.do({ arg k, i;
 	Button(w, 100@30)
 	.states_([[k.asString, Color.black, Color.white]])
-	.action_({ ~tap.value(k); })
+	.action_({ ~tap.value(i); })
 });
 f.nextLine;
+
+~bparam_id.do({ arg k;
+	Button(w, 140@30)
+	.states_([
+		[k.asString ++ " ON", Color.black, Color.white],
+		[k.asString ++ " OFF", Color.white, Color.gray]
+	])
+	.action_({ ~bparam.value(i); })
+});
+f.nextLine;
+
+~fparam_id.do({ arg el, i;
+	var k = el[0];
+	var spec = el[1];
+	k.postln;
+	EZKnob(w, 100@100, k.asString, spec, {
+		arg sl;
+		[k, sl.value].postln;
+		// NB: re-scaling here because EZKnob truncates displayed values :(
+		~fparam.value(i, sl.value * 0.01);
+	});
+});
+f.nextLine;
+
+~iparam_id.do({ arg el, i;
+	var k = el[0];
+	var spec = el[1];
+	k.postln;
+	EZKnob(w, 100@100, k.asString, spec, {
+		arg sl;
+		[k, sl.value].postln;
+		~iparam.value(i, sl.value);
+	});
+});
 
 
 //
