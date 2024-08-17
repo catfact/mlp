@@ -25,12 +25,12 @@ a = NetAddr("localhost", p);
 ~iparam_id = [
 	[\selectLayer, ControlSpec(0, 3, \lin, 1) ],
 	[\resetLayer, ControlSpec(0, 3, \lin, 1) ],
-	[\loopStartFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
-	[\loopEndFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
-	[\loopResetFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ]
+	// [\loopStartFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
+	// [\loopEndFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ],
+	// [\loopResetFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ]
 ];
 
-~iparam = { arg id, v; a.sendMsg(\iparam, id, v); };
+~iparam = { arg id, v; a.sendMsg(\iparam, id, v.asInteger); };
 
 ~bparam_id = [
 	\syncLastLayer,

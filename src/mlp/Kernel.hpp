@@ -227,7 +227,7 @@ namespace mlp {
         }
 
         void SetLoopEndFrame(frame_t end) {
-            std::cout << "SetLoopEndFrame(): layer = " << currentLayer << std::endl;
+            std::cout << "SetLoopEndFrame(): layer = " << currentLayer << "; frame = " << end << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers) {
                 layer[currentLayer].loopEndFrame = end;
                 if (layer[currentLayer].resetFrame > layer[currentLayer].loopEndFrame) {

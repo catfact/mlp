@@ -148,7 +148,7 @@ protected:
             } else if (std::strcmp(msg.AddressPattern(), "/iparam") == 0) {
                 osc::ReceivedMessage::const_iterator arg = msg.ArgumentsBegin();
                 int idx = arg++->AsInt32();
-                auto value = arg->AsInt64();
+                auto value = arg->AsInt32();
                 m.IndexParamChange(static_cast<Mlp::IndexParamId>(idx), value);
             } else if (std::strcmp(msg.AddressPattern(), "/bparam") == 0) {
                 osc::ReceivedMessage::const_iterator arg = msg.ArgumentsBegin();

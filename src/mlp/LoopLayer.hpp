@@ -51,7 +51,7 @@ namespace mlp {
         bool loopEnabled{true};
         bool syncLastLayer{true};
 
-        void OpenLoop(frame_t startFrame=0) {
+        void OpenLoop(frame_t startFrame = 0) {
             loopStartFrame = startFrame;
             if (resetFrame < loopStartFrame) {
                 resetFrame = loopStartFrame;
@@ -63,7 +63,7 @@ namespace mlp {
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
 
-        void CloseLoop( bool shouldUnmute = true, bool shouldDub = false) {
+        void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
             state = LoopLayerState::LOOPING;
             SetReadActive(shouldUnmute);
             SetWriteActive(shouldDub);
@@ -79,8 +79,7 @@ namespace mlp {
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
-        void SetWriteActive(bool active)
-        {
+        void SetWriteActive(bool active) {
             if (active) {
                 writeSwitch.Open();
             } else {
@@ -88,8 +87,7 @@ namespace mlp {
             }
         }
 
-        void SetReadActive(bool active)
-        {
+        void SetReadActive(bool active) {
             if (active) {
                 readSwitch.Open();
             } else {
@@ -121,7 +119,8 @@ namespace mlp {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = phasor.currentFrame % bufferFrames;
             for (int ch = 0; ch < numChannels; ++ch) {
-                *(dst + ch) += buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level * playbackLevel;
+                *(dst + ch) +=
+                        buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level * playbackLevel;
             }
         }
 
@@ -252,6 +251,7 @@ namespace mlp {
                 resetFrame = loopStartFrame;
             }
         }
+
         void SetFadeIncrement(float increment) {
             for (auto &thePhasor: phasor) {
                 thePhasor.fadeIncrement = increment;
