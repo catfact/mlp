@@ -135,7 +135,7 @@ protected:
         try {
             if (std::strcmp(msg.AddressPattern(), "/tap") == 0) {
                 osc::ReceivedMessageArgumentStream args = msg.ArgumentStream();
-                int idx;
+                int idx {0};
                 args >> idx >> osc::EndMessage;
                 std::cout << "tap " << idx << std::endl;
                 m.Tap(static_cast<Mlp::TapId>(idx));
