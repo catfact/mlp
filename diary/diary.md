@@ -137,4 +137,16 @@ oh! i almost forgot. conditions can have _counters_,(*) and setting a condition 
 
 absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" side of the design. pretty ridiculous, but something about writing in tex activates a formal and considered mindset, which feels useful sometimes.
 
-**time spent**: 3-4hr? very spread out / multitasked over last few days.
+## TODO
+
+- i'm tempted to switch focus to a plugin, but not sure:
+  - the next functional piece of implementation is to try this refactor / redesign of the layer logic
+  - but regardless of the UI, it really needs feedback from the state of the system,
+  - i don't really relish doing that in SC/OSC, but i suppose it's probably less time than doing it in plugin UI,
+  - and this is all about the most minimal path to a good design, so i guess that's the answer
+- and tangentially, varispeed is on the menu, including reversal, so:
+  - elements of the layer logic will need to be rebuilt to accomodate this
+  - but at present, i'm ok with continuing using simple integer frame count while the logic is being worked out,
+  - just bearing in mind that e.g. a condition will end up being a test that's aware of history and direction, rather than just a simple equality check
+
+**time spent**: maybe ~4hr? very spread out / multitasked over last few days.
