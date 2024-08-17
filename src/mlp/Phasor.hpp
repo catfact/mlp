@@ -5,14 +5,34 @@
 
 namespace mlp {
 
-    enum class PhasorAdvanceResult {
+    // shoot these need to be bitfields or something actually
+    enum class PhasorAdvanceResultFlag {
         INACTIVE,
         CONTINUING,
         WRAPPED_LOOP,
         CROSSED_TRIGGER,
         DONE_FADEOUT,
-        DONE_FADEIN
+        DONE_FADEIN,
+        NUM_FLAGS
     };
+
+    typedef BitSet<PhasorAdvanceResultFlag> PhasorAdvanceResult;
+
+//    struct PhasorAdvanceResult {
+//        std::bitset<static_cast<size_t>(PhasorAdvanceResultFlag::NUM_FLAGS)> flags;
+//
+//        void Set(PhasorAdvanceResultFlag flag) {
+//            flags.set(static_cast<size_t>(flag));
+//        }
+//
+//        void Unset(PhasorAdvanceResultFlag flag) {
+//            flags.reset(static_cast<size_t>(flag));
+//        }
+//
+//        bool Test(PhasorAdvanceResultFlag flag) const {
+//            return flags.test(static_cast<size_t>(flag));
+//        }
+//    };
 
     //------------------------------------------------
 // simplistic  phasor including crossfade
@@ -31,11 +51,14 @@ namespace mlp {
 
         // return true if the phasor has wrapped
         PhasorAdvanceResult Advance() {
-            if (!isActive) {
-                return PhasorAdvanceResult::INACTIVE;
-            }
+            PhasorAdvanceResult result;
+            result.Set(PhasorAdvanceResultFlag::CONTINUING);
 
-            PhasorAdvanceResult result = PhasorAdvanceResult::CONTINUING;
+            if (!isActive) {
+                result.Set(PhasorAdvanceResultFlag::INACTIVE);
+                return result;
+            }
+            result.Set(PhasorAdvanceResultFlag::CONTINUING);
 
             if (isFadingIn) {
                 fadePhase += fadeIncrement;
@@ -43,7 +66,7 @@ namespace mlp {
                     fadePhase = 1.f;
                     isFadingIn = false;
                     fadeValue = 1.f;
-                    result = PhasorAdvanceResult::DONE_FADEIN;
+                    result.Set(PhasorAdvanceResultFlag::DONE_FADEIN);
                 } else {
                     fadeValue = sinf(fadePhase * pi_2<float>);
                 }
@@ -55,19 +78,18 @@ namespace mlp {
                     fadeValue = 0.f;
                     isFadingOut = false;
                     isActive = false;
-                    result = PhasorAdvanceResult::DONE_FADEOUT;
+                    result.Set(PhasorAdvanceResultFlag::DONE_FADEOUT);
                 } else {
                     fadeValue = sinf(fadePhase * pi_2<float>);
                 }
             }
             currentFrame++;
             if (currentFrame == triggerFrame) {
-                /// FIXME: results need to be a bitfield i suppose
-                // result = PhasorAdvanceResult::CROSSED_TRIGGER;
+                result.Set(PhasorAdvanceResultFlag::CROSSED_TRIGGER);
             }
-            if (currentFrame >= maxFrame) {
+            if (currentFrame == maxFrame) {
                 if (!isFadingOut) {
-                    result = PhasorAdvanceResult::WRAPPED_LOOP;
+                    result.Set(PhasorAdvanceResultFlag::WRAPPED_LOOP);
                     isFadingOut = true;
                 }
             }

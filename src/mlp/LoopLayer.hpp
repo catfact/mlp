@@ -150,10 +150,11 @@ namespace mlp {
             }
         }
 
-        // return true if the loop wraps after this frame
-        bool ProcessFrame(const float *src, float *dst) {
+        PhasorAdvanceResult ProcessFrame(const float *src, float *dst) {
             if (state == LoopLayerState::STOPPED) {
-                return false;
+                PhasorAdvanceResult result;
+                result.Set(PhasorAdvanceResultFlag::INACTIVE);
+                return result;
             }
             if (readSwitch.Process()) {
                 for (const auto &thePhasor: phasor) {
@@ -174,13 +175,34 @@ namespace mlp {
 
             phasor[lastPhasorIndex].Advance();
             auto result = phasor[currentPhasorIndex].Advance();
+
+            if (result.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
+                if (stopPending) {
+                    SetReadActive(false);
+                    SetWriteActive(false);
+                    state = LoopLayerState::STOPPED;
+                    stopPending = false;
+                    std::cout << "[LoopLayer] stopped loop" << std::endl;
+                }
+            }
+
+            if (result.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
+                if (loopEnabled) {
+                    lastPhasorIndex = currentPhasorIndex;
+                    currentPhasorIndex ^= 1;
+                    phasor[currentPhasorIndex].Reset(loopStartFrame);
+                }
+            }
+
+            return result;
+#if 0
             switch (result)
             {
-                case PhasorAdvanceResult::INACTIVE:
-                case PhasorAdvanceResult::CONTINUING:
-                case PhasorAdvanceResult::DONE_FADEIN:
+                case PhasorAdvanceResultFlag::INACTIVE:
+                case PhasorAdvanceResultFlag::CONTINUING:
+                case PhasorAdvanceResultFlag::DONE_FADEIN:
                     return false;
-                case PhasorAdvanceResult::DONE_FADEOUT:
+                case PhasorAdvanceResultFlag::DONE_FADEOUT:
                     if (stopPending) {
                         SetReadActive(false);
                         SetWriteActive(false);
@@ -189,17 +211,19 @@ namespace mlp {
                         std::cout << "[LoopLayer] stopped loop" << std::endl;
                     }
                     return false;
-                case PhasorAdvanceResult::WRAPPED_LOOP:
+                case PhasorAdvanceResultFlag::WRAPPED_LOOP:
                     if (loopEnabled) {
                         lastPhasorIndex = currentPhasorIndex;
                         currentPhasorIndex ^= 1;
                         phasor[currentPhasorIndex].Reset(loopStartFrame);
                     }
                     return true;
-                case PhasorAdvanceResult::CROSSED_TRIGGER:
+                case PhasorAdvanceResultFlag::CROSSED_TRIGGER:
                     /// TODO: perform a trigger action?
                     return false;
             }
+#endif
+
         };
 
         void Reset() {

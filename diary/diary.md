@@ -120,3 +120,12 @@ added this stuff to the main kernel / API:
 main thing that feels weird now is that first layer doesn't trigger resets on last layer, but otherwise there is no differentiation between layers or feedback on which is selected, so it seems arbitrary. one remedy might be to say: when all layers are stopped, the next one to start will become the "innermost."
 
 **time**: ~3.5hr
+
+# 2024/8/17
+
+my time has been sort of atomized over the last couple days, so i have added a few things but it has been scattered and mostly untested / unfinished. 
+
+- realized phasor advancement needs to result in a bitfield and not just a bool
+
+
+

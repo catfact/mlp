@@ -60,17 +60,32 @@ namespace mlp {
             x[0] = *src++;
             x[1] = *src++;
             for (int i = 0; i < numLayers; ++i) {
-                if (layer[i].ProcessFrame(x, y)) {
+                auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
+                if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
                     // the loop has wrapped around (next frame will fall at loop start)
-                    /// TODO: different behaviors/modes are possible here
-                    /// for now: each layer after the first optionally resets the layer below it
-                    /// this means that the most recent loop is effectively the "leader,"
-                    /// determining the period of all loops
+//                    /// TODO: different behaviors/modes are possible here
                     if (layer[i].syncLastLayer && (i != innerLayer)) {
                         int layerBelow = i > 0 ? i - 1 : (int) numLayers - 1;
                         layer[layerBelow].Reset();
                     }
                 }
+                if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
+                    // the loop has reached the trigger frame
+//                    /// TODO: different behaviors/modes are possible here
+                }
+
+
+//                if (layer[i].ProcessFrame(x, y)) {
+//                    // the loop has wrapped around (next frame will fall at loop start)
+//                    /// TODO: different behaviors/modes are possible here
+//                    /// for now: each layer after the first optionally resets the layer below it
+//                    /// this means that the most recent loop is effectively the "leader,"
+//                    /// determining the period of all loops
+//                    if (layer[i].syncLastLayer && (i != innerLayer)) {
+//                        int layerBelow = i > 0 ? i - 1 : (int) numLayers - 1;
+//                        layer[layerBelow].Reset();
+//                    }
+//                }
             }
             *dst++ = y[0];
             *dst++ = y[1];

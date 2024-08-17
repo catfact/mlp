@@ -1,0 +1,104 @@
+\documentclass{article}
+
+\begin{document}
+
+\title{\texttt{MLP}: modes of operation}
+
+\maketitle
+
+describing the steps taken when "setting a loop" under different modes of behavior.
+
+we use the term \textit{layer} to describe a looping section of audio. (what might also be termed a \textit{loop} or \textit{cycle}.)
+
+layers in \texttt{mlp} can be instructed to trigger actions on other layers when certain conditions are met, such as crossing a threshold or wrapping around the loop point. these conditions and actions are evaluated on each audio sample frame, and their settings define the instrument's different modes of player interaction.
+
+
+\section[terms]{terms, conditions and actions}
+
+$l$ is the current layer, $l_{-1}$ represents the layer below, $l_{1}$ the layer above, etc.
+
+variables defined for each layer $l$:
+
+\begin{itemize}%[layer variables]
+\item[$L(l)$]: (boolean) whether looping is enabled 
+\item[$P(l)$]: the position of the current active phasor
+\item[$R(l)$]: its reset position
+\item[$S(l)$]: loop start position (always zero?)
+\item[$E(l)$]: loop end position (where wrapping will occur)
+\item[$T(l)$]: trigger position (an arbitrary point between $S$ and $E$)
+\end{itemize}
+
+conditions which can be assigned to actions:
+
+\begin{itemize}%[conditions]
+\item[$\mathbf{A_{trig}}(l) = f$]: take action $f = \{...\}$ when the given layer reaches its trigger point
+\item[$\mathbf{A_{wrap}}(l) = f$]: take action $f = \{...\}$ when the given layer wraps around its loop endpoint
+\end{itemize}
+
+each conditional may also have a \textit{counter} assigned: $\mathbf{C_{trig}}(l)$, etc. each time the condition is reached, the counter is decremented if it's non-zero. when the counter is zero, the condition is disabled. a negative counter value is ignored (and the condition always applies.)
+
+actions to be taken:
+
+\begin{itemize}%[actions]
+\item[$\mathbf{Reset}(l)$]: move to reset position
+\item[$\mathbf{Pause}(l)$]: stop playing/writing
+\item[$\mathbf{Resume}(l)$]: resume playing/writing from last position
+\end{itemize}
+
+\section[general]{general behavior}
+
+\textbf{open loop} and \textbf{close loop} are the primary actions taken on a layer, performed by subsequent button taps. 
+
+whether a layer is looping or not is assumed to be a dynamic parameter, associated with the layer and not directly specified by behavior mode. however, some behaviors assume layer looping is disabled or enabled in order to work as expected.
+
+the \textbf{wrap} condition is met after the layer processes the last audio frame before exceeding its loop point. viz., the layer will process the loop's start point on the next frame (if looping is enabled on the layer.) 
+
+the \textbf{trigger} condition is met after the layer processes an arbitrary frame within the loop, called the layer's \textit{trigger position}.
+
+opening a loop begins recording into the current layer's buffer; closing the loop stops recording and sets the layer's loop endpoint.
+
+\section[modes]{mode specifications}
+
+\subsection[mul-unquant]{multiply, unquantized}
+
+\begin{itemize}
+\item[\textbf{open loop}]: $R(l_{-1}) = P(l_{-1})$
+\item[] $\mathbf{A_{wrap}}(l) = \{\mathbf{Reset}(l_{-1})\}$
+\end{itemize}
+
+\subsection[mul-quantA]{multiply, quantized start}
+\begin{itemize}
+\item[] $L(l) = false$
+\item[] $L(l_{-1}) = true$
+\item[\textbf{open loop}]: $T(l_{-1}) = P(l_{-1})$
+\item[] $\mathbf{A_{trig}}(l_{-1}) = \{\mathbf{Reset}(l)\}$
+\item[] $\mathbf{A_{wrap}}(l) = \{\mathbf{Reset}(l_{-1})\}$
+\end{itemize}
+
+\subsection[mul-quantB]{multiply, quantized end}
+
+\begin{itemize}
+\item[] $L(l) = false$
+\item[] $L(l_{-1}) = true$
+\item[\textbf{open loop}]: $T(l_{-1}) = P(l_{-1})$
+\item[] $\mathbf{A_{wrap}}(l) = \{\mathbf{C_{trig}}(l_{-1}) = 1\}$
+\item[] $\mathbf{A_{trig}}(l_{-1}) = \{\mathbf{Reset}(l)\}$
+\end{itemize}
+
+\subsection[mul-quantAB]{multiply, quantized both}
+
+(as above...)
+
+\subsection[insert-unquant]{insert, unquantized}
+
+\begin{itemize}
+\item[] $L(l) = false$
+\item[] $L(l_{-1}) = false$
+\item[\textbf{open loop}]: $T(l_{-1}) = P(l_{-1})$
+\item[] $R(l) = 0$
+\item[] $\mathbf{A_{trig}}(l_{-1}) = \{\mathbf{Reset}(l); \mathbf{Pause}(l_{-1}\}$
+\item[] $\mathbf{A_{wrap}}(l) = \{\mathbf{Resume}(l_{-1})\}$
+\end{itemize}
+    
+
+\end{document}
