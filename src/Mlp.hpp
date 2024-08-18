@@ -3,41 +3,142 @@
 #include "readerwriterqueue/readerwriterqueue.h"
 #include "mlp/Kernel.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+
+/// FIXME nasty
+#define EventQueue moodycamel::ReaderWriterQueue
+
 namespace mlp {
 
     // main API for the audio effect
 
     class Mlp {
     public:
-        enum class TapId: int {
-            SetLoop,
-            ToggleOverdub,
-            ToggleMute,
-            StopLoop,
+
+        enum class TapId : int {
+            Set,
+            Stop,
             Reset,
+            Count
         };
 
-        enum class FloatParamId: int {
+        static constexpr char TapIdLabel[static_cast<int>(TapId::Count)][16] = {
+                "SET",
+                "STOP",
+                "RESET"
+        };
+
+        enum class FloatParamId : int {
             PreserveLevel,
             RecordLevel,
             PlaybackLevel,
-            FadeIncrement
+            FadeTime,
+            SwitchTime,
+            Count
         };
 
-        enum class IndexParamId: int {
+        static constexpr char FloatParamIdLabel[static_cast<int>(FloatParamId::Count)][16] = {
+                "PRESERVE",
+                "RECORD",
+                "PLAYBACK",
+                "FADE",
+                "SWITCH"
+        };
+
+        enum class IndexFloatParamId : int {
+            LayerPreserveLevel,
+            LayerRecordLevel,
+            LayerPlaybackLevel,
+            LayerFadeTime,
+            LayerSwitchTime,
+            Count
+        };
+
+        static constexpr char IndexFloatParamIdLabel[static_cast<int>(IndexFloatParamId::Count)][32] = {
+                "PRESERVE",
+                "RECORD",
+                "PLAYBACK",
+                "FADE",
+                "SWITCH"
+        };
+
+        struct IndexFloatParamValue {
+            unsigned int index;
+            float value;
+        };
+
+        enum class IndexParamId : int {
             SelectLayer,
             ResetLayer,
             LoopStartFrame,
             LoopEndFrame,
             LoopResetFrame,
+            Count
         };
 
-        enum class BoolParamId: int {
-            SyncLastLayer,
+        static constexpr char IndexParamIdLabel[static_cast<int>(IndexParamId::Count)][16] = {
+                "SELECT",
+                "RESET",
+                "STARTPOS=",
+                "ENDPOS",
+                "RESETPOS"
+        };
+
+        enum class IndexIndexParamId : int {
+            LayerLoopStartFrame,
+            LayerLoopEndFrame,
+            LayerLoopResetFrame,
+            Count
+        };
+
+        static constexpr char IndexIndexParamIdLabel[static_cast<int>(IndexIndexParamId::Count)][32] = {
+                "STARTPOS",
+                "ENDPOS",
+                "RESETPOS"
+        };
+
+        struct IndexIndexParamValue {
+            unsigned int index;
+            unsigned long int value;
+        };
+
+        enum class BoolParamId : int {
+            WriteEnabled,
+            ClearEnabled,
+            ReadEnabled,
             LoopEnabled,
+            Count
         };
 
-        template <typename Id, typename Value>
+        static constexpr char BoolParamIdLabel[static_cast<int>(BoolParamId::Count)][16] = {
+                "WRITE",
+                "CLEAR",
+                "READ",
+                "LOOP"
+        };
+
+        enum class IndexBoolParamId : int {
+            LayerWriteEnabled,
+            LayerClearEnabled,
+            LayerReadEnabled,
+            LayerLoopEnabled,
+            Count
+        };
+
+        static constexpr char IndexBoolParamIdLabel[static_cast<int>(IndexBoolParamId::Count)][32] = {
+                "WRITE",
+                "CLEAR",
+                "READ",
+                "LOOP"
+        };
+
+        struct IndexBoolParamValue {
+            unsigned int index;
+            bool value;
+        };
+
+        template<typename Id, typename Value>
         struct ParamChangeRequest {
             Id id;
             Value value;
@@ -45,39 +146,89 @@ namespace mlp {
 
     private:
 
-        moodycamel::ReaderWriterQueue<TapId> tapQ;
-        moodycamel::ReaderWriterQueue<ParamChangeRequest<FloatParamId, float>> floatParamQ;
-        moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexParamId, unsigned long int>> indexParamQ;
-        moodycamel::ReaderWriterQueue<ParamChangeRequest<BoolParamId, bool>> boolParamQ;
+        struct ParamChangeQ {
+            EventQueue<TapId> tapQ;
+            EventQueue<ParamChangeRequest<FloatParamId, float>> floatQ;
+            EventQueue<ParamChangeRequest<IndexParamId, unsigned long int>> indexQ;
+            EventQueue<ParamChangeRequest<BoolParamId, bool>> boolQ;
+            EventQueue<ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue>> indexFloatQ;
+            EventQueue<ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue>> indexIndexQ;
+            EventQueue<ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue>> indexBoolQ;
+        };
+        ParamChangeQ paramChangeQ;
+
+        struct OutputsQ {
+            EventQueue<mlp::LayerFlagsMessageData> layerFlagsQ;
+            EventQueue<mlp::LayerPositionMessageData> layerPositionQ;
+        };
+        OutputsQ outputsQ;
 
         Kernel kernel;
+        mlp::OutputsData outputsData;
+        unsigned long int framesSinceOutput = 0;
+
+        float sampleRate;
 
     public:
-        void ProcessAudioBlock(const float *input, float* output, unsigned int numFrames) {
+        void SetSampleRate(float aSampleRate) { sampleRate = aSampleRate; }
 
+        void ProcessAudioBlock(const float *input, float *output, unsigned int numFrames) {
+
+            ProcessParamChanges();
+
+            for (unsigned int i = 0; i < numFrames; ++i) {
+                *output = 0.f;
+                *(output + 1) = 0.f;
+                kernel.ProcessFrame(input, output);
+            }
+
+            ProcessOutputs(numFrames);
+        }
+
+        EventQueue<mlp::LayerFlagsMessageData> &GetLayerFlagsQ() {
+            return outputsQ.layerFlagsQ;
+        }
+
+        EventQueue<mlp::LayerPositionMessageData> &GetLayerPositionQ() {
+            return outputsQ.layerPositionQ;
+        }
+
+    private:
+
+        void ProcessOutputs(unsigned int numFrames) {
+            framesSinceOutput += numFrames;
+            if (framesSinceOutput >= framesPerOutput) {
+                framesSinceOutput = 0;
+                kernel.FinalizeOutputs();
+                for (unsigned int i = 0; i < numLoopLayers; ++i) {
+                    if (outputsData.layers[i].flags.Any()) {
+                        outputsQ.layerFlagsQ.enqueue({i, outputsData.layers[i].flags});
+                    }
+                }
+                kernel.InitializeOutputs(&outputsData);
+            }
+        }
+
+        void ProcessParamChanges() {
             TapId tapId;
-            while (tapQ.try_dequeue(tapId)) {
+            while (paramChangeQ.tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
-                    case TapId::SetLoop:
+                    case TapId::Set:
                         kernel.SetLoopTap();
                         break;
-                    case TapId::ToggleOverdub:
-                        kernel.ToggleOverdub();
-                        break;
-                    case TapId::ToggleMute:
-                        kernel.ToggleMute();
-                        break;
-                    case TapId::StopLoop:
+                    case TapId::Stop:
                         kernel.StopLoop();
                         break;
                     case TapId::Reset:
-                        kernel.Reset();
+                        kernel.ResetLayer();
+                        break;
+                    default:
                         break;
                 }
             }
 
             ParamChangeRequest<FloatParamId, float> floatParamChangeRequest{};
-            while (floatParamQ.try_dequeue(floatParamChangeRequest)) {
+            while (paramChangeQ.floatQ.try_dequeue(floatParamChangeRequest)) {
                 switch (floatParamChangeRequest.id) {
                     case FloatParamId::PreserveLevel:
                         kernel.SetPreserveLevel(floatParamChangeRequest.value);
@@ -88,20 +239,27 @@ namespace mlp {
                     case FloatParamId::PlaybackLevel:
                         kernel.SetPlaybackLevel(floatParamChangeRequest.value);
                         break;
-                    case FloatParamId::FadeIncrement:
-                        kernel.SetFadeIncrement(floatParamChangeRequest.value);
+                    case FloatParamId::FadeTime:
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        kernel.SetFadeTime(floatParamChangeRequest.value * 10.f);
+                        break;
+                    case FloatParamId::SwitchTime:
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        kernel.SetSwitchTime(floatParamChangeRequest.value * 10.f);
+                        break;
+                    default:
                         break;
                 }
             }
 
             ParamChangeRequest<IndexParamId, unsigned long int> indexParamChangeRequest{};
-            while (indexParamQ.try_dequeue(indexParamChangeRequest)) {
+            while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
                     case IndexParamId::SelectLayer:
-                        kernel.SelectLayer((int)indexParamChangeRequest.value);
+                        kernel.SetCurrentLayer((unsigned int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::ResetLayer:
-                        kernel.ResetLayer((int)indexParamChangeRequest.value);
+                        kernel.ResetLayer((int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::LoopStartFrame:
                         kernel.SetLoopStartFrame(indexParamChangeRequest.value);
@@ -112,84 +270,144 @@ namespace mlp {
                     case IndexParamId::LoopResetFrame:
                         kernel.SetLoopResetFrame(indexParamChangeRequest.value);
                         break;
+                    default:
+                        break;
                 }
             }
 
             ParamChangeRequest<BoolParamId, bool> boolParamChangeRequest{};
-            while (boolParamQ.try_dequeue(boolParamChangeRequest)) {
+            while (paramChangeQ.boolQ.try_dequeue(boolParamChangeRequest)) {
                 switch (boolParamChangeRequest.id) {
-                    case BoolParamId::SyncLastLayer:
-                        kernel.SetSyncLastLayer(boolParamChangeRequest.value);
+                    case BoolParamId::WriteEnabled:
+                        kernel.SetWrite(boolParamChangeRequest.value);
+                        break;
+                    case BoolParamId::ClearEnabled:
+                        kernel.SetClear(boolParamChangeRequest.value);
+                        break;
+                    case BoolParamId::ReadEnabled:
+                        kernel.SetRead(boolParamChangeRequest.value);
                         break;
                     case BoolParamId::LoopEnabled:
                         kernel.SetLoopEnabled(boolParamChangeRequest.value);
                         break;
+                    default:
+                        break;
                 }
             }
 
-            for (unsigned int i=0; i<numFrames; ++i) {
-                *output = 0.f;
-                *(output + 1) = 0.f;
-                kernel.ProcessFrame(input, output);
+            ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue> indexFloatParamChangeRequest{};
+            while (paramChangeQ.indexFloatQ.try_dequeue(indexFloatParamChangeRequest)) {
+                float tmpValue;
+                switch (indexFloatParamChangeRequest.id) {
+                    case IndexFloatParamId::LayerPreserveLevel:
+                        kernel.SetPreserveLevel(indexFloatParamChangeRequest.value.value,
+                                                (int) indexFloatParamChangeRequest.value.index);
+                        break;
+                    case IndexFloatParamId::LayerRecordLevel:
+                        kernel.SetRecordLevel(indexFloatParamChangeRequest.value.value,
+                                              (int) indexFloatParamChangeRequest.value.index);
+                        break;
+                    case IndexFloatParamId::LayerPlaybackLevel:
+                        kernel.SetPlaybackLevel(indexFloatParamChangeRequest.value.value,
+                                                (int) indexFloatParamChangeRequest.value.index);
+                        break;
+                    case IndexFloatParamId::LayerFadeTime:
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
+                        kernel.SetFadeTime(tmpValue,
+                                                (int) indexFloatParamChangeRequest.value.index);
+
+                    case IndexFloatParamId::LayerSwitchTime:
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
+                        kernel.SetSwitchTime(tmpValue,
+                                           (int) indexFloatParamChangeRequest.value.index);
+
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue> indexIndexParamChangeRequest{};
+            while (paramChangeQ.indexIndexQ.try_dequeue(indexIndexParamChangeRequest)) {
+                switch (indexIndexParamChangeRequest.id) {
+                    case IndexIndexParamId::LayerLoopStartFrame:
+                        kernel.SetLoopStartFrame(indexIndexParamChangeRequest.value.value,
+                                                 (int) indexIndexParamChangeRequest.value.index);
+                        break;
+                    case IndexIndexParamId::LayerLoopEndFrame:
+                        kernel.SetLoopEndFrame(indexIndexParamChangeRequest.value.value,
+                                               (int) indexIndexParamChangeRequest.value.index);
+                        break;
+                    case IndexIndexParamId::LayerLoopResetFrame:
+                        kernel.SetLoopResetFrame(indexIndexParamChangeRequest.value.value,
+                                                 (int) indexIndexParamChangeRequest.value.index);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue> indexBoolParamChangeRequest{};
+            while (paramChangeQ.indexBoolQ.try_dequeue(indexBoolParamChangeRequest)) {
+                switch (indexBoolParamChangeRequest.id) {
+                    case IndexBoolParamId::LayerWriteEnabled:
+                        kernel.SetLayerWrite(indexBoolParamChangeRequest.value.index,
+                                             indexBoolParamChangeRequest.value.value);
+                        break;
+                    case IndexBoolParamId::LayerClearEnabled:
+                        kernel.SetLayerClear(indexBoolParamChangeRequest.value.index,
+                                             indexBoolParamChangeRequest.value.value);
+                        break;
+                    case IndexBoolParamId::LayerReadEnabled:
+                        kernel.SetLayerRead(indexBoolParamChangeRequest.value.index,
+                                            indexBoolParamChangeRequest.value.value);
+                        break;
+                    case IndexBoolParamId::LayerLoopEnabled:
+                        kernel.SetLoopEnabled(indexBoolParamChangeRequest.value.value);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 
+
+    public:
+
+        //-----------------------------------------------------------------------------------
+        //--- param change API
         void Tap(TapId tapId) {
-            tapQ.enqueue(tapId);
+            paramChangeQ.tapQ.enqueue(tapId);
         }
 
         void FloatParamChange(FloatParamId id, float value) {
-            floatParamQ.enqueue({id, value});
+            paramChangeQ.floatQ.enqueue({id, value});
         }
 
         void IndexParamChange(IndexParamId id, unsigned long int value) {
-            indexParamQ.enqueue({id, value});
+            paramChangeQ.indexQ.enqueue({id, value});
         }
 
         void BoolParamChange(BoolParamId id, bool value) {
-            boolParamQ.enqueue({id, value});
+            paramChangeQ.boolQ.enqueue({id, value});
         }
 
-//        //-----------------------------------------------------------------------------------
-//        //-----------------------------------------------------------------------------------
-//        ///--- FIXME: the following pass-throughs to the kernel are not necessarily thread-safe.
-//        //---- everything should really be going through the queues
-//        void SelectLayer(int layerIndex) {
-//            kernel.SelectLayer(layerIndex);
-//        }
-//
-//        void SetLoopStartFrame(frame_t start) {
-//            kernel.SetLoopStartFrame(start);
-//        }
-//
-//        void SetLoopEndFrame(frame_t end) {
-//            kernel.SetLoopEndFrame(end);
-//        }
-//
-//        void SetLoopResetFrame(frame_t frame) {
-//            kernel.SetLoopResetFrame(frame);
-//        }
-//
-//        void SetSyncLastLayer(bool sync) {
-//            kernel.SetSyncLastLayer(sync);
-//        }
-//
-//        void SetFadeIncrement(float increment) {
-//            kernel.SetFadeIncrement(increment);
-//        }
-//
-//        void SetLoopEnabled(bool enabled) {
-//            kernel.SetLoopEnabled(enabled);
-//        }
-//
-//        void Reset() {
-//            kernel.Reset();
-//        }
-//
-//        void ResetLayer(int layerIndex) {
-//            kernel.ResetLayer(layerIndex);
-//        }
-        //-----------------------------------------------------------------------------------
-        //-----------------------------------------------------------------------------------
+        void IndexFloatParamChange(IndexFloatParamId id, unsigned int index, float value) {
+            paramChangeQ.indexFloatQ.enqueue({id, {index, value}});
+        }
+
+        void IndexIndexParamChange(IndexIndexParamId id, unsigned int index, unsigned long int value) {
+            paramChangeQ.indexIndexQ.enqueue({id, {index, value}});
+        }
+
+        void IndexBoolParamChange(IndexBoolParamId id, unsigned int index, bool value) {
+            paramChangeQ.indexBoolQ.enqueue({id, {index, value}});
+        }
+
+
     };
 }
+
+
+#pragma GCC diagnostic pop

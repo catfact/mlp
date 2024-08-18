@@ -150,3 +150,101 @@ absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" 
   - just bearing in mind that e.g. a condition will end up being a test that's aware of history and direction, rather than just a simple equality check
 
 **time spent**: maybe ~4hr? very spread out / multitasked over last few days.
+
+# 2024/8/19
+
+finished rewrite of layer logic. this was one of those little spirals where things were overcomplicated, then reduced. ah well.
+
+  now it is reasonably clean, and the mode system essentially works. this is an interim level of generality, where layer actions and conditions are somewhat well-defined lists of opcodes, but mode behaviors are still hardcoded as lambda functions in c++. at some point, we want runtime-definable opcode lists here, but hardcoding is a good way of exploring the space of what is needed.
+
+however there are at least some bugs around overdub behavior right now, so keeping it on WIP branch.
+
+need to test insert mode, and very much need to have UI feedback soon on the state of the system.
+
+**time**: ~3.5hr
+
+# 2024/8/20
+
+added a lot of per-layer control glue and made things generally more granular. probably addressed overdub issues in the process. still needs testing, more effective GUI, state feedback. 
+
+**time** ~1hr
+
+# 2024/8/29
+
+spent a couple days focused on a quick paying gig, which is rather crucial. things are totally busy and chaotic, but it feels important to dip back into this project to maintain momentum every few days.
+
+a more complete GUI from supercollider feels like low hanging fruit right now, so i'll give it a go...
+
+[several days pass..]
+
+... well! that did not really go as predicted. every time i sat down to make a SC gui it felt like a silly prospect. the project has entered a stage of complexity that i find familiar: it needs a fairly complex interface to test everything, all the next steps are fiddly and complex, and it represents a real hurdle in terms of building enough momentum to get through it.
+
+anyways, i ended up talking myself into going directly to JUCE to build a GUI. this is after considering several other directions, but the bottom line is that for a plugin release i will end up doing a JUCE UI anyways, and i really don't to do this part twice.
+
+so i've set things up with a top-level graphics component class that can be used in an audio plugin project, or in a graphical application that serves only as an OSC interface with a running `mlp` audio process.
+
+that component now has most things exposed, it's not very pretty but the layout is at least comprehensible. i need to add a couple more widgets, for layer and mode selection. 
+
+and, in another plot twist, i am encountering sudden failure loading the coreaudio framework on macOS, when running the rtaudio-based `mlp-cli` program:
+
+```
+dyld[7341]: dyld cache '(null)' not loaded: syscall to map cache into shared region failed
+dyld[7341]: Library not loaded: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+  Referenced from: <6B074DFD-CC05-329D-8E2D-BEAD048B1DFE> /Users/emb/code/mlp/cmake-build-debug/mlp-cli
+```
+
+this happens as soon as the program launches and loads frameworks, before entry to `main()`.
+
+the issue presents on the `wip` branch, but not on the `main` branch. i can't explain this; there don't seem to be any relevant changes between them:
+- i suspected that pulling in JUCE cmake stuff might have been causing the conflict (loading the coreaudio framework twice.) but leaving it out doesn't help!
+- i have to assume it is something about building including rtaudio as a static library. but again i can't see any relevant difference. the issue seemed to simply appear out of nowhere, and i'll need to bisect history to start trying to isolate it.
+
+so! having burned an hour or two being stuck on this, i am considering shelving the rtaudio client for now and focusing fully on a JUCE client. (which, if needed, could also forgo the GUI in favor of an OSC interface as a runtime option.) i've encountered a lot of little issues with rtaudio over the years, most are never explained or resolved really, so maybe it would be smart to just stop wrangling multiple platform audio wrappers in one project.
+
+i think the total time i've spent since last diary update is getting up to the 8 or 10 hour range, spread out over more than a week (i have a lot going on at home these days!), which feels like the maximum time to wait between diary updates. so here we are, despite being in a not terribly satisfying state.
+
+on the other hand, last time i _did_ have things working was pretty satisfying! the layer condition/behavior system seems to work and make sense (more thoughts on this later,) and a number of bugs have been ironed out regarding auto-layer-selection logic, and the special treatment of "inner" and "outer" layers regarding how they interact with others. working with the system in the "unquantized multiply" mode, with round-robin layer selection, feels predictable yet with clear potential for complexity. so overall i'm feeling pretty good about the direction.   
+
+**time**: ~10hr
+
+
+# 2024/8/29
+
+ok managed to put together a JUCE project pretty efficiently and with no real issues. the GUI is ugly as heck but it does most of the things that it needs to.
+
+----
+
+final touches that the basic GUI still needs to be "complete" :
+
+- mode buttons
+- current-layer selection buttons
+- labels for slider parameters
+
+oh, and for sure:
+- reflect the initial state of the system
+
+and maybe:
+- live position indicators? (but, a rabbit hole: we do not actually report loop length, so hard to know how to scale.)
+
+- architecturally, at some point there should be a clean way of specifying float parameter rangs / curves / mappings.
+
+----
+
+i still haven't added any facility to change modes. i think i'm basically just scared to test Insert and any other new modes, because i suspect some deep flaw in my logic around imagining that they are [pssible with this limited set of "sync opcodes" i've come up with. bah! how silly. i will get past this little obstacle very soon.
+
+the other thing that this version needs pretty badly is some kind of MIDI mapping. not sure of the best way to do this. the simplest is with just a configuration file. i think a simple YAML for now, which could be serialized and managed by the plugin framework.
+
+---
+
+had some more thoughts / realizations about planned features:
+
+- filters. each layer needs some for sure. i think two per layer should do it; the main questions are:
+  - how many parameters to expose? the minimal version would be HP and LP in series, only cutoff controls. maximally, each could offer arbitrary mode-blending, resonance controls, maybe saturation, and the routing could be series or parallel.
+  - how many models / which models to expose? i have a nice 2p/4p ladder model that might suffice, maybe with different saturators for flavor.
+
+- inter-layer audio routing matrix. with levels of course, but i would _really_ like to have (optional) stereo processing in that matrix as well. (and on layer->main outputs.) i have a nice band-split stereoizer module that could be adapted to stereo->stereo operation.
+
+- mode specification. i have been thinking of this in terms of a DSL or arbitrarily complex data structure, but in reality it could almost just be... a patch matrix? with per-layer conditions on one axis, and per-layer actions on the other. (a pretty big and unwieldy matrix to be sure.) of course a sparse text-based representation would still be useful.
+
+**time**: ~4hr
+

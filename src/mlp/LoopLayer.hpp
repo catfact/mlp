@@ -2,9 +2,14 @@
 
 #include <cassert>
 
+
+#include "LayerBehavior.hpp"
+
+#include "Outputs.hpp"
 #include "Phasor.hpp"
 #include "SmoothSwitch.hpp"
 #include "Types.hpp"
+
 
 namespace mlp {
 
@@ -25,12 +30,13 @@ namespace mlp {
         std::array<FadePhasor, 2> phasor;
         SmoothSwitch writeSwitch;
         SmoothSwitch readSwitch;
+        SmoothSwitch clearSwitch;
 
         ///--- runtime state
         LoopLayerState state{LoopLayerState::STOPPED};
         bool stopPending{false};
-        int currentPhasorIndex{0};
-        int lastPhasorIndex{1};
+        unsigned int currentPhasorIndex{0};
+        unsigned int lastPhasorIndex{1};
 
         ///---- parameters
         // jump to this frame on external reset
@@ -41,6 +47,8 @@ namespace mlp {
         frame_t loopEndFrame{bufferFrames - 1};
         // frame on which to trigger something else...
         frame_t triggerFrame{0};
+        // frame at which we paused / will resume
+        frame_t pauseFrame{0};
 
         /// levels
         float playbackLevel{1.f};
@@ -49,24 +57,29 @@ namespace mlp {
 
         /// behavior flags
         bool loopEnabled{true};
-        bool syncLastLayer{true};
+
+        LayerOutputs *outputs;
+
+        //------------------------------------------------------------------------------------------------------
 
         void OpenLoop(frame_t startFrame = 0) {
             loopStartFrame = startFrame;
             if (resetFrame < loopStartFrame) {
                 resetFrame = loopStartFrame;
             }
-
+            loopEndFrame = bufferFrames - 1;
             state = LoopLayerState::SETTING;
-            SetWriteActive(true);
+            SetWrite(true);
+            assert(phasor[currentPhasorIndex].isActive == false);
             phasor[currentPhasorIndex].Reset();
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
 
+
         void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
             state = LoopLayerState::LOOPING;
-            SetReadActive(shouldUnmute);
-            SetWriteActive(shouldDub);
+            SetRead(shouldUnmute);
+            SetWrite(shouldDub);
             lastPhasorIndex = currentPhasorIndex;
             currentPhasorIndex ^= 1;
 
@@ -79,7 +92,43 @@ namespace mlp {
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
-        void SetWriteActive(bool active) {
+//        void SetWriteActive(bool active) {
+//            if (active) {
+//                writeSwitch.Open();
+//            } else {
+//                writeSwitch.Close();
+//            }
+//        }
+//
+//        void SetReadActive(bool active) {
+//            if (active) {
+//                readSwitch.Open();
+//            } else {
+//                readSwitch.Close();
+//            }
+//        }
+//
+//        void SetClearActive(bool active) {
+//            if (active) {
+//                clearSwitch.Open();
+//            } else {
+//                clearSwitch.Close();
+//            }
+//        }
+
+        bool ToggleWrite() {
+            return writeSwitch.Toggle();
+        }
+
+        bool ToggleRead() {
+            return readSwitch.Toggle();
+        }
+
+        bool ToggleClear() {
+            return clearSwitch.Toggle();
+        }
+
+        void SetWrite(bool active) {
             if (active) {
                 writeSwitch.Open();
             } else {
@@ -87,7 +136,7 @@ namespace mlp {
             }
         }
 
-        void SetReadActive(bool active) {
+        void SetRead(bool active) {
             if (active) {
                 readSwitch.Open();
             } else {
@@ -95,12 +144,12 @@ namespace mlp {
             }
         }
 
-        void ToggleWrite() {
-            writeSwitch.Toggle();
-        }
-
-        void ToggleRead() {
-            readSwitch.Toggle();
+        void SetClear(bool active) {
+            if (active) {
+                clearSwitch.Open();
+            } else {
+                clearSwitch.Close();
+            }
         }
 
         void Stop() {
@@ -115,31 +164,33 @@ namespace mlp {
         // given a phasor, read from the buffer according to its frame position,
         // and scale the output by its fade value,
         // mixing into the given interleaved audio frame
-        void ReadPhasor(float *dst, const FadePhasor &phasor) {
+        void ReadPhasor(float *dst, const FadePhasor &aPhasor) {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
-            auto bufIdx = phasor.currentFrame % bufferFrames;
-            for (int ch = 0; ch < numChannels; ++ch) {
-                *(dst + ch) +=
-                        buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level * playbackLevel;
+            auto bufIdx = aPhasor.currentFrame % bufferFrames;
+            for (unsigned int ch = 0; ch < numChannels; ++ch) {
+                auto x = buffer[(bufIdx * numChannels) + ch];
+                auto a = aPhasor.fadeValue * readSwitch.level * playbackLevel;
+                *(dst + ch) += x * a;
             }
         }
 
         // given a phasor, write to the buffer according to its frame position,
         // scaling record/preserve levels by its fade value
-        void WritePhasor(const float *src, const FadePhasor &phasor) {
-            // auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
-            auto bufIdx = phasor.currentFrame % bufferFrames;
-            float modPreserve = preserveLevel;
+        void WritePhasor(const float *src, const FadePhasor &aPhasor) {
+            auto bufIdx = aPhasor.currentFrame % bufferFrames;
+            /// FIXME: maybe linear inversion of the switch is not ideal
+            float modPreserve = preserveLevel * (1-clearSwitch.level);
             /// we want to modulate the preserve level towards unity as the phasor fades out
-            modPreserve += (1.f - modPreserve) * (1.f - phasor.fadeValue);
+            modPreserve += (1.f - modPreserve) * (1.f - aPhasor.fadeValue);
             /// and also as the write switch disengages
-            if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
+            /// (TODO: maybe profile this conditional)
+            // if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
                 float switchLevel = writeSwitch.level;
                 modPreserve += (1.f - modPreserve) * (1 - switchLevel);
-            }
-            for (int ch = 0; ch < numChannels; ++ch) {
+            // }
+            for (unsigned int ch = 0; ch < numChannels; ++ch) {
                 float x = *(src + ch);
-                float modRecord = recordLevel * phasor.fadeValue;
+                float modRecord = recordLevel * aPhasor.fadeValue;
                 modRecord *= writeSwitch.level;
                 x *= modRecord;
                 float y = buffer[(bufIdx * numChannels) + ch];
@@ -169,6 +220,7 @@ namespace mlp {
                     }
                 }
             }
+            clearSwitch.Process();
 
             assert(lastPhasorIndex != currentPhasorIndex);
 
@@ -177,11 +229,11 @@ namespace mlp {
 
             if (result.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
                 if (stopPending) {
-                    SetReadActive(false);
-                    SetWriteActive(false);
+                    SetRead(false);
+                    SetWrite(false);
                     state = LoopLayerState::STOPPED;
                     stopPending = false;
-                    std::cout << "[LoopLayer] stopped loop" << std::endl;
+                    outputs->flags.Set(LayerOutputFlagId::Stopped);
                 }
             }
 
@@ -190,40 +242,12 @@ namespace mlp {
                     lastPhasorIndex = currentPhasorIndex;
                     currentPhasorIndex ^= 1;
                     phasor[currentPhasorIndex].Reset(loopStartFrame);
+                    if (outputs) outputs->flags.Set(LayerOutputFlagId::Looped);
                 }
             }
 
             return result;
-#if 0
-            switch (result)
-            {
-                case PhasorAdvanceResultFlag::INACTIVE:
-                case PhasorAdvanceResultFlag::CONTINUING:
-                case PhasorAdvanceResultFlag::DONE_FADEIN:
-                    return false;
-                case PhasorAdvanceResultFlag::DONE_FADEOUT:
-                    if (stopPending) {
-                        SetReadActive(false);
-                        SetWriteActive(false);
-                        state = LoopLayerState::STOPPED;
-                        stopPending = false;
-                        std::cout << "[LoopLayer] stopped loop" << std::endl;
-                    }
-                    return false;
-                case PhasorAdvanceResultFlag::WRAPPED_LOOP:
-                    if (loopEnabled) {
-                        lastPhasorIndex = currentPhasorIndex;
-                        currentPhasorIndex ^= 1;
-                        phasor[currentPhasorIndex].Reset(loopStartFrame);
-                    }
-                    return true;
-                case PhasorAdvanceResultFlag::CROSSED_TRIGGER:
-                    /// TODO: perform a trigger action?
-                    return false;
-            }
-#endif
-
-        };
+        }
 
         void Reset() {
             lastPhasorIndex = currentPhasorIndex;
@@ -236,6 +260,36 @@ namespace mlp {
         void Reset(frame_t frame) {
             SetResetFrame(frame);
             Reset();
+        }
+
+        void Restart() {
+            Reset(0);
+        }
+
+        void Pause() {
+            pauseFrame = GetCurrentFrame();
+            phasor[currentPhasorIndex].isFadingOut = true;
+        }
+
+        void Resume() {
+            for (unsigned int i=0; i<2; ++i) {
+                auto &thePhasor = phasor[i];
+                if (!thePhasor.isActive) {
+                    currentPhasorIndex = i;
+                    thePhasor.Reset(pauseFrame);
+                    return;
+                }
+            }
+            // shouldn't really get here
+            std::cerr << "[LoopLayer] resume failed - already playing + in a crossfade?" << std::endl;
+        }
+
+        void StoreTrigger() {
+            SetTriggerFrame(GetCurrentFrame());
+        }
+
+        void StoreReset() {
+            SetResetFrame(GetCurrentFrame());
         }
 
         frame_t GetCurrentFrame() const {
@@ -252,10 +306,28 @@ namespace mlp {
             }
         }
 
+
+        void SetTriggerFrame(frame_t frame) {
+            triggerFrame = frame;
+            if (triggerFrame > loopEndFrame) {
+                triggerFrame = loopEndFrame;
+            }
+            if (triggerFrame < loopStartFrame) {
+                triggerFrame = loopStartFrame;
+            }
+        }
+
         void SetFadeIncrement(float increment) {
             for (auto &thePhasor: phasor) {
                 thePhasor.fadeIncrement = increment;
             }
+        }
+
+        void SetSwitchIncrement(float increment) {
+            // FIXME / NB: this will only take effect on the next open/close
+            writeSwitch.SetDelta(increment);
+            readSwitch.SetDelta(increment);
+            clearSwitch.SetDelta(increment);
         }
 
         bool GetIsActive() const {

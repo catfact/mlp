@@ -1,6 +1,9 @@
 p = 9000;
 a = NetAddr("localhost", p);
 
+
+
+
 ~maxLoopFrames = 1 << 25;
 
 ~tap_id = [
@@ -11,7 +14,6 @@ a = NetAddr("localhost", p);
 	\reset,
 ];
 
-~tap = { arg id; a.sendMsg(\tap, id); };
 
 ~fparam_id =[
 	[\preserveLevel, ControlSpec(0, 100, \lin, 0.1)],
@@ -20,7 +22,10 @@ a = NetAddr("localhost", p);
 	[\fadeIncrement, ControlSpec(0, 1, \lin, 0.01)],
 ];
 
+~tap = { arg id; a.sendMsg(\tap, id); };
 ~fparam = { arg id, v; a.sendMsg(\fparam, id, v); };
+~iparam = { arg id, v; a.sendMsg(\iparam, id, v.asInteger); };
+
 
 ~iparam_id = [
 	[\selectLayer, ControlSpec(0, 3, \lin, 1) ],
@@ -30,10 +35,8 @@ a = NetAddr("localhost", p);
 	// [\loopResetFrame, ControlSpec(0, ~maxLoopFrames-1, \lin, 1) ]
 ];
 
-~iparam = { arg id, v; a.sendMsg(\iparam, id, v.asInteger); };
 
 ~bparam_id = [
-	\syncLastLayer,
 	\loopEnabled
 ];
 
