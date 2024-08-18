@@ -5,7 +5,7 @@
 #include <functional>
 #include <utility>
 
-#include "LoopLayer.hpp"
+//#include "LoopLayer.hpp"
 #include "Types.hpp"
 
 namespace mlp {
@@ -24,6 +24,13 @@ namespace mlp {
         Trigger,
         Wrap,
         NUM_CONDITIONS
+    };
+
+    struct LayerConditions {
+        std::array<bool, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> state{};
+        static void Set(LayerConditions &conditions, LayerConditionId conditionId, bool value) {
+            conditions.state[static_cast<size_t>(conditionId)] = value;
+        }
     };
 
     /// non-specialized action wrapper for layers (which have audio-related specialization)
@@ -56,11 +63,29 @@ namespace mlp {
             }
         };
 
-        struct ConditionData {
+        struct Condition {
             int counter{-1};
             std::vector<Action> actions{};
         };
-        std::array<ConditionData, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> conditionDataList;
+        std::array<Condition, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> conditionDataList;
+
+        //typedef std::array<bool, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> ConditionsResult;
+        typedef BitSet<LayerConditionId, LayerConditionId::NUM_CONDITIONS> ConditionsResult;
+
+        ConditionsResult ProcessConditions(LayerActionInterface &actionInterface, LayerConditions &conditions) {
+            ConditionsResult result{0};
+
+            // seems weird that we don't have this in c++...
+            // for (auto id: LayerConditionId)
+            for (size_t i = 0; i < static_cast<size_t>(LayerConditionId::NUM_CONDITIONS); i++) {
+                if (conditions.state[i]) {
+                    if (ProcessCondition(static_cast<LayerConditionId>(i))) {
+                        result.Set(static_cast<LayerConditionId>(i));
+                    }
+                }
+            }
+            return result;
+        }
 
         bool ProcessCondition(LayerConditionId conditionId) {
             auto &conditionData = conditionDataList[static_cast<size_t>(conditionId)];
@@ -76,7 +101,6 @@ namespace mlp {
             return true;
         }
     };
-
 
 
 }

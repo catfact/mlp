@@ -40,6 +40,7 @@ namespace mlp {
         /// FIXME: maybe encapsulate mode/behavior settings
         bool clearLayerOnStop{true};
         bool clearLayerOnSet{true};
+        bool advanceLayerOnLoopOpen{true};
 
     public:
 
@@ -75,18 +76,6 @@ namespace mlp {
 //                    /// TODO: different behaviors/modes are possible here
                 }
 
-
-//                if (layer[i].ProcessFrame(x, y)) {
-//                    // the loop has wrapped around (next frame will fall at loop start)
-//                    /// TODO: different behaviors/modes are possible here
-//                    /// for now: each layer after the first optionally resets the layer below it
-//                    /// this means that the most recent loop is effectively the "leader,"
-//                    /// determining the period of all loops
-//                    if (layer[i].syncLastLayer && (i != innerLayer)) {
-//                        int layerBelow = i > 0 ? i - 1 : (int) numLayers - 1;
-//                        layer[layerBelow].Reset();
-//                    }
-//                }
             }
             *dst++ = y[0];
             *dst++ = y[1];
@@ -97,23 +86,25 @@ namespace mlp {
 
         // first action: opens/closes the loop, advances the layer
         void SetLoopTap() {
-            if (advanceLayerOnNextTap) {
-                std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
-                if (++currentLayer >= numLayers) {
-                    std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
-                    currentLayer = 0;
-                } else {
-                    std::cout << "SetLoopTap(): current layer now = " << currentLayer << std::endl;
-                }
-                advanceLayerOnNextTap = false;
-            }
-            if (currentLayer >= numLayers) {
-                return;
-            }
+
 
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::LOOPING:
+                    if (advanceLayerOnLoopOpen && advanceLayerOnNextTap) {
+                        std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
+                        if (++currentLayer >= numLayers) {
+                            std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
+                            currentLayer = 0;
+                        } else {
+                            std::cout << "SetLoopTap(): current layer now = " << currentLayer << std::endl;
+                        }
+                        advanceLayerOnNextTap = false;
+                    }
+                    if (currentLayer >= numLayers) {
+                        return;
+                    }
+
                     std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
                     if (currentLayer != innerLayer) {
@@ -125,6 +116,7 @@ namespace mlp {
                     }
                     advanceLayerOnNextTap = false;
                     break;
+
                 case LoopLayerState::SETTING:
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
@@ -157,7 +149,6 @@ namespace mlp {
         }
 
         void StopLoop() {
-            // std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             assert(currentLayer >= 0 && currentLayer < numLayers);
 
             /// FIXME: actually we probably don't need any of these index-in-bounds checks anymore
@@ -168,8 +159,6 @@ namespace mlp {
                     layer[currentLayer].preserveLevel = 0.f;
                 }
 
-
-                /// FIXME: ok, not the most efficient way to check this
                 bool anyLayersActive = false;
                 for (auto &theLayer: layer) {
                     anyLayersActive |= theLayer.GetIsActive();
@@ -265,6 +254,10 @@ namespace mlp {
 
         void SetClearOnSet(bool clear) {
             clearLayerOnSet = clear;
+        }
+
+        void SetAdvanceLayerOnLoopOpen(bool advance) {
+            advanceLayerOnLoopOpen = advance;
         }
 
         void ResetCurrent() {
