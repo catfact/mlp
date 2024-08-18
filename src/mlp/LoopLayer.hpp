@@ -280,6 +280,17 @@ namespace mlp {
             }
         }
 
+
+        void SetTriggerFrame(frame_t frame) {
+            triggerFrame = frame;
+            if (triggerFrame > loopEndFrame) {
+                triggerFrame = loopEndFrame;
+            }
+            if (triggerFrame < loopStartFrame) {
+                triggerFrame = loopStartFrame;
+            }
+        }
+
         void SetFadeIncrement(float increment) {
             for (auto &thePhasor: phasor) {
                 thePhasor.fadeIncrement = increment;

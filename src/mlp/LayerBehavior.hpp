@@ -65,13 +65,13 @@ namespace mlp {
 
     struct LayerBehavior {
         struct Action {
-            LayerActionInterface* thisLayer;
-            LayerActionInterface* layerBelow;
-            LayerActionInterface* layerAbove;
-            std::function<void(LayerActionInterface*, LayerActionInterface*, LayerActionInterface*, bool)> function;
+            LayerActionInterface *thisLayer;
+            LayerActionInterface *layerBelow;
+            LayerActionInterface *layerAbove;
+            std::function<void(LayerActionInterface *, LayerActionInterface *, LayerActionInterface *, bool)> function;
 
-             void Perform(bool isInnerMostLayer) {
-                 function(thisLayer, layerBelow, layerAbove, isInnerMostLayer);
+            void Perform(bool isInnerMostLayer) {
+                function(thisLayer, layerBelow, layerAbove, isInnerMostLayer);
             }
         };
 
@@ -134,36 +134,53 @@ namespace mlp {
     };
 
     static bool
-    InitializeLayerBehavior(std::vector<LayerActionInterface *> actionInterfaceList, LayerBehavior &behavior,
+    InitializeLayerBehavior(LayerActionInterface *thisLayer,
+                            LayerActionInterface *layerBelow,
+                            LayerActionInterface *layerAbove,
+                            LayerBehavior &behavior,
                             LayerModeId modeId) {
         for (auto &conditionData: behavior.conditionDataList) {
             conditionData.counter = -1;
             conditionData.actions.clear();
         }
+
+        LayerBehavior::Action a;
+        a.thisLayer = thisLayer;
+        a.layerBelow = layerBelow;
+        a.layerAbove = layerAbove;
+
         switch (modeId) {
+
+//--------------------------------------------------------------
             case LayerModeId::ASYNC:
-                // nothing to do
+                // no actions are required!
                 return true;
+
+//--------------------------------------------------------------
             case LayerModeId::MULTIPLY_UNQUANTIZED:
-//                for (auto &actionInterface: actionInterfaceList) {
-//                    behavior.conditionDataList[static_cast<size_t>(LayerConditionId::OpenLoop)].actions.push_back(
-//                            {actionInterface,
-//                             [](LayerActionInterface *actionInterface) { actionInterface->Perform(LayerActionId::Reset); }
-//                            }
-//                    );
-//                }
-//                behavior.conditionDataList[static_cast<size_t>(LayerConditionId::OpenLoop)].actions.push_back(
-//                        {nullptr,
-//                         [](LayerActionInterface *actionInterface) { actionInterface->Perform(LayerActionId::Reset); }
-//                        }
-//                );
+
+                //--- loop open: layer below to sets reset frame = current frame
+                a.function = [](LayerActionInterface *thisLayer, LayerActionInterface *layerBelow,
+                                LayerActionInterface *layerAbove, bool isInnerMostLayer) {
+                    if (!isInnerMostLayer) {
+                        layerBelow->Perform(LayerActionId::StoreReset);
+                    }
+                };
+                behavior.conditionDataList[static_cast<size_t>(LayerConditionId::OpenLoop)].actions.push_back(a);
+
+                //--- loop wrap: reset the layer below
+                a.function = [](LayerActionInterface *thisLayer, LayerActionInterface *layerBelow,
+                                LayerActionInterface *layerAbove, bool isInnerMostLayer) {
+                    if (!isInnerMostLayer) {
+                        layerBelow->Perform(LayerActionId::Reset);
+                    }
+                };
+                behavior.conditionDataList[static_cast<size_t>(LayerConditionId::Wrap)].actions.push_back(a);
                 return true;
+
+//--------------------------------------------------------------
             case LayerModeId::INSERT_UNQUANTIZED:
-//                behavior.conditionDataList[static_cast<size_t>(LayerConditionId::OpenLoop)].counter = 1;
-//                behavior.conditionDataList[static_cast<size_t>(LayerConditionId::OpenLoop)].actions.push_back(
-//                        {nullptr,
-//                         [](LayerActionInterface *actionInterface) { actionInterface->Perform(LayerActionId::Reset); }}
-//                );
+                // TODO
                 return true;
             default:
                 // NYI mode
