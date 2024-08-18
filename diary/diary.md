@@ -123,9 +123,30 @@ main thing that feels weird now is that first layer doesn't trigger resets on la
 
 # 2024/8/17
 
-my time has been sort of atomized over the last couple days, so i have added a few things but it has been scattered and mostly untested / unfinished. 
+my time has been sort of atomized lately, so i have added a few things but it has been scattered, mostly working in the abstract and rarely with a chance to test/play.
 
-- realized phasor advancement needs to result in a bitfield and not just a bool
+finally today i've taken at least enough time to play with the present OSC interface and supercollider GUI. it is shonky as heck, but essentially the "nested multiply" behavior is already interesting to use - i think it would be especially attractive for "beat-driven" sampling flows. i have not tested very systematically but also haven't noticed any glaring problems.
 
+design- and architecture-wise, some things have been clarified by coding and conceptualizing. i'm now thinking in terms of layer _actions_ (**reset**, **pause**, **resume**,) and _conditions_ (**trigger**, **wrap**.) conditions are checked at the end of each frame. a condition on one layer can trigger a set of actions on itself and/or other layers. internal looping of a layer is a special default case that can be modulated arbitrarily. other layer parameters include frame positions for reset (which defines an action/input), trigger (a condition/output), and loop endpoint (condition/output with default self-action.) 
 
+this feels like a good place to me. i think that with this small set of defined actions/conditions, all the EDP-derived behaviors can be acheived, as can many others. but it is also (hopefully) not overwhelmingly complex either from an implementation or usage standpoint. viz., regarding the latter, behaviors can be defined declaratively, without needing "scripting" or "programming", and without needing to interpret code during runtime.
 
+oh! i almost forgot. conditions can have _counters_,(*) and setting a condition counter is also an action. nonzero counter values are decremented when a condition is met; the action list only "fires" on subsequently non-zero values, and negative counter values are ignored. a counter value of 1 is needed to implement some of the EDP modes with this system, and i think other values could be pretty interesting ("stutter" effects and so on.)
+
+(*or should the counter be on an action instead? or a condition->action binding? or both/all of the above? hm...)
+
+absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" side of the design. pretty ridiculous, but something about writing in tex activates a formal and considered mindset, which feels useful sometimes.
+
+## TODO
+
+- i'm tempted to switch focus to a plugin, but not sure:
+  - the next functional piece of implementation is to try this refactor / redesign of the layer logic
+  - but regardless of the UI, it really needs feedback from the state of the system,
+  - i don't really relish doing that in SC/OSC, but i suppose it's probably less time than doing it in plugin UI,
+  - and this is all about the most minimal path to a good design, so i guess that's the answer
+- and tangentially, varispeed is on the menu, including reversal, so:
+  - elements of the layer logic will need to be rebuilt to accomodate this
+  - but at present, i'm ok with continuing using simple integer frame count while the logic is being worked out,
+  - just bearing in mind that e.g. a condition will end up being a test that's aware of history and direction, rather than just a simple equality check
+
+**time spent**: maybe ~4hr? very spread out / multitasked over last few days.
