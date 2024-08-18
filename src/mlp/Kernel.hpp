@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 
+#include "LayerBehavior.hpp"
 #include "LoopLayer.hpp"
 #include "Types.hpp"
 
@@ -115,10 +116,9 @@ namespace mlp {
                 case LoopLayerState::LOOPING:
                     std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
-                    /// FIXME: layers can wrap, zero isn't necessarily inner
                     if (currentLayer != innerLayer) {
                         int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
-                        lastLayerPositionAtLoopStart = layer[layerBelow].GetCurrentFrame();
+                        layer[layerBelow].resetFrame = layer[layerBelow].GetCurrentFrame();
                     }
                     if (clearLayerOnSet) {
                         layer[currentLayer].preserveLevel = 0.f;
@@ -130,7 +130,6 @@ namespace mlp {
                     layer[currentLayer].CloseLoop();
                     if (currentLayer != innerLayer) {
                         int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
-                        layer[layerBelow].resetFrame = lastLayerPositionAtLoopStart;
                         layer[layerBelow].Reset();
                     }
                     advanceLayerOnNextTap = true;
@@ -260,7 +259,15 @@ namespace mlp {
             }
         }
 
-        void Reset() {
+        void SetClearOnStop(bool clear) {
+            clearLayerOnStop = clear;
+        }
+
+        void SetClearOnSet(bool clear) {
+            clearLayerOnSet = clear;
+        }
+
+        void ResetCurrent() {
             if (currentLayer >= 0 && currentLayer < numLayers) {
                 layer[currentLayer].Reset();
             }

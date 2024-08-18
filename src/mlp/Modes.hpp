@@ -15,17 +15,18 @@ namespace mlp {
      * each condition triggering a set of actions
      */
 
-    enum class TriggerModeFlag {
-        RESET_BELOW,
-        PAUSE_SELF
-    };
-    typedef BitSet<TriggerModeFlag> TriggerMode;
-
-    enum class LoopModeFlag {
-        LOOP,
-        ONE_SHOT
-    };
-    typedef BitSet<LoopModeFlag> LoopMode;
-
+//    enum class TriggerModeFlag {
+//        RESET_BELOW,
+//        PAUSE_SELF,
+//        NUM_TRIGGER_MODES
+//    };
+//    typedef BitSet<TriggerModeFlag> TriggerMode;
+//
+//    enum class LoopModeFlag {
+//        LOOP,
+//        ONE_SHOT
+//    };
+//    typedef BitSet<LoopModeFlag> LoopMode;
+//
 
 }

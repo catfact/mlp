@@ -16,7 +16,7 @@ namespace mlp {
         NUM_FLAGS
     };
 
-    typedef BitSet<PhasorAdvanceResultFlag> PhasorAdvanceResult;
+    typedef BitSet<PhasorAdvanceResultFlag, PhasorAdvanceResultFlag::NUM_FLAGS> PhasorAdvanceResult;
 
 //    struct PhasorAdvanceResult {
 //        std::bitset<static_cast<size_t>(PhasorAdvanceResultFlag::NUM_FLAGS)> flags;

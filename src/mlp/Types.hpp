@@ -7,9 +7,9 @@ namespace mlp {
 
     // silly syntax sweetener for indexing bitfields by enum class values
     // ** enum class must have a `NUM_FLAGS` member!! **
-    template<typename IdClass>
+    template<typename IdClass, IdClass Count>
     struct BitSet {
-        std::bitset<static_cast<size_t>(IdClass::NUM_FLAGS)> flags;
+        std::bitset<static_cast<size_t>(Count)> flags;
 
         void Set(IdClass flag) {
             flags.set(static_cast<size_t>(flag));

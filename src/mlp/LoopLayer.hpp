@@ -2,9 +2,13 @@
 
 #include <cassert>
 
+
+#include "LayerBehavior.hpp"
+
 #include "Phasor.hpp"
 #include "SmoothSwitch.hpp"
 #include "Types.hpp"
+
 
 namespace mlp {
 
@@ -51,6 +55,15 @@ namespace mlp {
         bool loopEnabled{true};
         bool syncLastLayer{true};
 
+        LayerActionInterface actions {
+                [this]() { Reset(); },
+                [this]() { Restart(); },
+                [this]() { Pause(); },
+                [this]() { Resume(); }
+        };
+
+        //------------------------------------------------------------------------------------------------------
+
         void OpenLoop(frame_t startFrame = 0) {
             loopStartFrame = startFrame;
             if (resetFrame < loopStartFrame) {
@@ -62,6 +75,7 @@ namespace mlp {
             phasor[currentPhasorIndex].Reset();
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
+
 
         void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
             state = LoopLayerState::LOOPING;
@@ -236,6 +250,18 @@ namespace mlp {
         void Reset(frame_t frame) {
             SetResetFrame(frame);
             Reset();
+        }
+
+        void Restart() {
+            Reset(0);
+        }
+
+        void Pause() {
+            // TODO
+        }
+
+        void Resume() {
+            // TODO
         }
 
         frame_t GetCurrentFrame() const {

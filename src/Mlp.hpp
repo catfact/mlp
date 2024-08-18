@@ -71,7 +71,7 @@ namespace mlp {
                         kernel.StopLoop();
                         break;
                     case TapId::Reset:
-                        kernel.Reset();
+                        kernel.ResetCurrent();
                         break;
                 }
             }
