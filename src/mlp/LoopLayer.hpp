@@ -55,11 +55,13 @@ namespace mlp {
         bool loopEnabled{true};
         bool syncLastLayer{true};
 
-        LayerActionInterface actions {
+        LayerActionInterface actions{
                 [this]() { Reset(); },
                 [this]() { Restart(); },
                 [this]() { Pause(); },
-                [this]() { Resume(); }
+                [this]() { Resume(); },
+                [this]() { SetTriggerFrame(GetCurrentFrame()); },
+                [this]() { SetResetFrame(GetCurrentFrame()); },
         };
 
         //------------------------------------------------------------------------------------------------------

@@ -25,7 +25,8 @@ namespace mlp {
 
         // currently-selected layer index
         int currentLayer{0};
-        // the "innermost" layer doesn't trigger resets on the layer "below" it
+        // the "innermost" layer doesn't perform actions on the layer "below" it
+        // when all layers are stopped, the next activated layer becomes the innermost
         int innerLayer{0};
 
         // non-interleaved stereo buffers
@@ -35,9 +36,8 @@ namespace mlp {
         frame_t lastLayerPositionAtLoopStart;
         bool advanceLayerOnNextTap{false};
 
-
         /// mode/behavior flags
-        /// FIXME: maybe encapsulate mode/behavior settings
+        /// FIXME: maybe encapsulate these binary settings, just to reduce clutter
         bool clearLayerOnStop{true};
         bool clearLayerOnSet{true};
         bool advanceLayerOnLoopOpen{true};
