@@ -45,6 +45,8 @@ namespace mlp {
         frame_t loopEndFrame{bufferFrames - 1};
         // frame on which to trigger something else...
         frame_t triggerFrame{0};
+        // frame at which we paused / will resume
+        frame_t pauseFrame{0};
 
         /// levels
         float playbackLevel{1.f};
@@ -54,15 +56,15 @@ namespace mlp {
         /// behavior flags
         bool loopEnabled{true};
         bool syncLastLayer{true};
-
-        LayerActionInterface actions{
-                [this]() { Reset(); },
-                [this]() { Restart(); },
-                [this]() { Pause(); },
-                [this]() { Resume(); },
-                [this]() { SetTriggerFrame(GetCurrentFrame()); },
-                [this]() { SetResetFrame(GetCurrentFrame()); },
-        };
+//
+//        LayerActionInterface actions{
+//                [this]() { Reset(); },
+//                [this]() { Restart(); },
+//                [this]() { Pause(); },
+//                [this]() { Resume(); },
+//                [this]() { SetTriggerFrame(GetCurrentFrame()); },
+//                [this]() { SetResetFrame(GetCurrentFrame()); },
+//        };
 
         //------------------------------------------------------------------------------------------------------
 
@@ -259,11 +261,30 @@ namespace mlp {
         }
 
         void Pause() {
-            // TODO
+            pauseFrame = GetCurrentFrame();
+            phasor[currentPhasorIndex].isFadingOut = true;
         }
 
         void Resume() {
-            // TODO
+            for (int i=0; i<2; ++i) {
+            //for (auto &thePhasor: phasor) {
+                auto &thePhasor = phasor[i];
+                if (!thePhasor.isActive) {
+                    currentPhasorIndex = i;
+                    thePhasor.Reset(pauseFrame);
+                    return;
+                }
+            }
+            // shouldn't really get here
+            std::cerr << "[LoopLayer] resume failed - already playing + in a crossfade?" << std::endl;
+        }
+
+        void StoreTrigger() {
+            SetTriggerFrame(GetCurrentFrame());
+        }
+
+        void StoreReset() {
+            SetResetFrame(GetCurrentFrame());
         }
 
         frame_t GetCurrentFrame() const {

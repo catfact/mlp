@@ -13,4 +13,7 @@ namespace mlp
     constexpr T pi_2 = T(0.5) * pi<T>;
 
     static constexpr frame_t bufferFrames = 1 << 25;
+    static constexpr int numLoopChannels = 2;
+    static constexpr int numLoopLayers = 4;
+
 }
