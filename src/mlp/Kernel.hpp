@@ -23,8 +23,7 @@ namespace mlp {
         typedef LoopLayer<numChannels, bufferFrames> Layer;
         std::array<Layer, numLayers> layer;
         std::array<LayerBehavior, numLayers> behavior;
-        std::array<LayerInterface, numLayers> interface;
-        // std::array<LayerConditionState, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> conditions;
+        std::array<LayerInterface, numLayers> layerInterface;
 
         // currently-selected layer index
         int currentLayer{0};
@@ -45,10 +44,11 @@ namespace mlp {
         bool advanceLayerOnLoopOpen{true};
 
     private:
+        /// FIXME: just store this
         bool IsOuterLayer(int i) {
-            /// FIXME: woops, this doesn't account for the actual number of active layers`
-            return (innerLayer - i) % numLayers == 1;
+            return i == (innerLayer+1) % numLayers;
         }
+
     public:
 
         Kernel() {
@@ -64,13 +64,13 @@ namespace mlp {
             }
             /// initialize interfaces
             for (int i = 0; i < numLayers; ++i) {
-                interface[i].SetLayer(&layer[i]);
+                layerInterface[i].SetLayer(&layer[i]);
             }
             /// initialize behaviors
             for (int i = 0; i < numLayers; ++i) {
-                behavior[i].thisLayer = &interface[i];
-                behavior[i].layerBelow = &interface[(i - 1) % numLayers];
-                behavior[i].layerAbove = &interface[(i + 2) % numLayers];
+                behavior[i].thisLayer = &layerInterface[i];
+                behavior[i].layerBelow = &layerInterface[(i - 1) % numLayers];
+                behavior[i].layerAbove = &layerInterface[(i + 2) % numLayers];
             }
             /// initialize modes
             for (int i = 0; i < numLayers; ++i) {
@@ -86,26 +86,12 @@ namespace mlp {
             x[1] = *src++;
             for (int i = 0; i < numLayers; ++i) {
                 auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
-                auto &face = interface[i];
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
                     behavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
                     behavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, IsOuterLayer(i));
                 }
-//                if (PhasorAdvanceResultFlag::WRAPPED_LOOP) {
-//                    // the loop has wrapped around (next frame will fall at loop start)
-////                    /// TODO: different behaviors/modes are possible here
-//                    if (layer[i].syncLastLayer && (i != innerLayer)) {
-//                        int layerBelow = i > 0 ? i - 1 : (int) numLayers - 1;
-//                        layer[layerBelow].Reset();
-//                    }
-//                }
-//                if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
-//                    // the loop has reached the trigger frame
-////                    /// TODO: different behaviors/modes are possible here
-//                }
-
             }
             *dst++ = y[0];
             *dst++ = y[1];
@@ -139,10 +125,6 @@ namespace mlp {
                     layer[currentLayer].OpenLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop, currentLayer == innerLayer,
                                                             IsOuterLayer(currentLayer));
-//                    if (currentLayer != innerLayer) {
-//                        int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
-//                        layer[layerBelow].resetFrame = layer[layerBelow].GetCurrentFrame();
-//                    }
                     if (clearLayerOnSet) {
                         layer[currentLayer].preserveLevel = 0.f;
                     }
@@ -154,18 +136,8 @@ namespace mlp {
                     layer[currentLayer].CloseLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
                     IsOuterLayer(currentLayer));
-//                    if (currentLayer != innerLayer) {
-//                        int layerBelow = currentLayer > 0 ? currentLayer - 1 : (int) numLayers - 1;
-//                        layer[layerBelow].Reset();
-//                    }
                     advanceLayerOnNextTap = true;
                     break;
-//                case LoopLayerState::LOOPING:
-                    // std::cout << "TapLoop(): advancing layer; current = " << currentLayer << std::endl;
-                    // advance to the next layer and start over
-//                    currentLayer;
-//                    SetLoopTap();
-//                    break;
             }
         }
 
@@ -184,31 +156,26 @@ namespace mlp {
 
         void StopLoop() {
             assert(currentLayer >= 0 && currentLayer < numLayers);
-
-            /// FIXME: actually we probably don't need any of these index-in-bounds checks anymore
-            if (currentLayer >= 0) {
-                // std::cout << "(stopping current layer)" << std::endl;
-                layer[currentLayer].Stop();
-                if (clearLayerOnStop) {
-                    layer[currentLayer].preserveLevel = 0.f;
-                }
-
-                bool anyLayersActive = false;
-                for (auto &theLayer: layer) {
-                    anyLayersActive |= theLayer.GetIsActive();
-                }
-                if (!anyLayersActive) {
-                    std::cout << "(resetting inner layer)" << std::endl;
-                    innerLayer = currentLayer;
-                } else {
-                    std::cout << "(decrementing selection)" << std::endl;
-                    if (--currentLayer < 0) {
-                        currentLayer = numLayers - 1;
-                    }
-                }
-                std::cout << "stopped layer; current = " << currentLayer << std::endl;
+            // std::cout << "(stopping current layer)" << std::endl;
+            layer[currentLayer].Stop();
+            if (clearLayerOnStop) {
+                layer[currentLayer].preserveLevel = 0.f;
             }
 
+            bool anyLayersActive = false;
+            for (auto &theLayer: layer) {
+                anyLayersActive |= theLayer.GetIsActive();
+            }
+            if (!anyLayersActive) {
+                std::cout << "(resetting inner layer)" << std::endl;
+                innerLayer = currentLayer;
+            } else {
+                std::cout << "(decrementing selection)" << std::endl;
+                if (--currentLayer < 0) {
+                    currentLayer = numLayers - 1;
+                }
+            }
+            std::cout << "stopped layer; current = " << currentLayer << std::endl;
             // just making sure...
             advanceLayerOnNextTap = false;
         }

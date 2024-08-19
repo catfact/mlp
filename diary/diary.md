@@ -150,3 +150,7 @@ absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" 
   - just bearing in mind that e.g. a condition will end up being a test that's aware of history and direction, rather than just a simple equality check
 
 **time spent**: maybe ~4hr? very spread out / multitasked over last few days.
+
+# 2024/8/19
+
+...

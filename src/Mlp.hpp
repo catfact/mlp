@@ -150,46 +150,5 @@ namespace mlp {
             boolParamQ.enqueue({id, value});
         }
 
-//        //-----------------------------------------------------------------------------------
-//        //-----------------------------------------------------------------------------------
-//        ///--- FIXME: the following pass-throughs to the kernel are not necessarily thread-safe.
-//        //---- everything should really be going through the queues
-//        void SelectLayer(int layerIndex) {
-//            kernel.SelectLayer(layerIndex);
-//        }
-//
-//        void SetLoopStartFrame(frame_t start) {
-//            kernel.SetLoopStartFrame(start);
-//        }
-//
-//        void SetLoopEndFrame(frame_t end) {
-//            kernel.SetLoopEndFrame(end);
-//        }
-//
-//        void SetLoopResetFrame(frame_t frame) {
-//            kernel.SetLoopResetFrame(frame);
-//        }
-//
-//        void SetSyncLastLayer(bool sync) {
-//            kernel.SetSyncLastLayer(sync);
-//        }
-//
-//        void SetFadeIncrement(float increment) {
-//            kernel.SetFadeIncrement(increment);
-//        }
-//
-//        void SetLoopEnabled(bool enabled) {
-//            kernel.SetLoopEnabled(enabled);
-//        }
-//
-//        void Reset() {
-//            kernel.Reset();
-//        }
-//
-//        void ResetLayer(int layerIndex) {
-//            kernel.ResetLayer(layerIndex);
-//        }
-        //-----------------------------------------------------------------------------------
-        //-----------------------------------------------------------------------------------
     };
 }
