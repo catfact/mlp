@@ -153,4 +153,10 @@ absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" 
 
 # 2024/8/19
 
-...
+finished rewrite of layer logic. this was one of those little spirals where things were overcomplicated, then reduced. ah well.
+
+now it is clean, and the modes essentially work. however there are at least some bugs around overdub behavior, so keeping it on WIP branch.
+
+need to test insert mode, and very much need to have UI feedback soon on the state of the system.
+
+**time**: ~3hr

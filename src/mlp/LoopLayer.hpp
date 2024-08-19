@@ -113,12 +113,12 @@ namespace mlp {
             }
         }
 
-        void ToggleWrite() {
-            writeSwitch.Toggle();
+        bool ToggleWrite() {
+            return writeSwitch.Toggle();
         }
 
-        void ToggleRead() {
-            readSwitch.Toggle();
+        bool ToggleRead() {
+            return readSwitch.Toggle();
         }
 
         void Stop() {
