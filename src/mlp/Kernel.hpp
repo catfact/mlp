@@ -231,12 +231,6 @@ namespace mlp {
             }
         }
 
-        void SetSyncLastLayer(bool sync) {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].syncLastLayer = sync;
-            }
-        }
-
         void SetFadeIncrement(float increment) {
             if (currentLayer >= 0 && currentLayer < numLayers) {
                 layer[currentLayer].SetFadeIncrement(increment);

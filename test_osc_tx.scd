@@ -33,7 +33,6 @@ a = NetAddr("localhost", p);
 ~iparam = { arg id, v; a.sendMsg(\iparam, id, v.asInteger); };
 
 ~bparam_id = [
-	\syncLastLayer,
 	\loopEnabled
 ];
 

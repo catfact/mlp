@@ -33,7 +33,6 @@ namespace mlp {
         };
 
         enum class BoolParamId: int {
-            SyncLastLayer,
             LoopEnabled,
         };
 
@@ -118,9 +117,6 @@ namespace mlp {
             ParamChangeRequest<BoolParamId, bool> boolParamChangeRequest{};
             while (boolParamQ.try_dequeue(boolParamChangeRequest)) {
                 switch (boolParamChangeRequest.id) {
-                    case BoolParamId::SyncLastLayer:
-                        kernel.SetSyncLastLayer(boolParamChangeRequest.value);
-                        break;
                     case BoolParamId::LoopEnabled:
                         kernel.SetLoopEnabled(boolParamChangeRequest.value);
                         break;

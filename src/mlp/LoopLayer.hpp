@@ -55,16 +55,6 @@ namespace mlp {
 
         /// behavior flags
         bool loopEnabled{true};
-        bool syncLastLayer{true};
-//
-//        LayerActionInterface actions{
-//                [this]() { Reset(); },
-//                [this]() { Restart(); },
-//                [this]() { Pause(); },
-//                [this]() { Resume(); },
-//                [this]() { SetTriggerFrame(GetCurrentFrame()); },
-//                [this]() { SetResetFrame(GetCurrentFrame()); },
-//        };
 
         //------------------------------------------------------------------------------------------------------
 
@@ -151,10 +141,11 @@ namespace mlp {
             /// we want to modulate the preserve level towards unity as the phasor fades out
             modPreserve += (1.f - modPreserve) * (1.f - phasor.fadeValue);
             /// and also as the write switch disengages
-            if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
+            /// (TODO: maybe profile this conditional)
+            // if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
                 float switchLevel = writeSwitch.level;
                 modPreserve += (1.f - modPreserve) * (1 - switchLevel);
-            }
+            // }
             for (int ch = 0; ch < numChannels; ++ch) {
                 float x = *(src + ch);
                 float modRecord = recordLevel * phasor.fadeValue;
@@ -212,35 +203,6 @@ namespace mlp {
             }
 
             return result;
-#if 0
-            switch (result)
-            {
-                case PhasorAdvanceResultFlag::INACTIVE:
-                case PhasorAdvanceResultFlag::CONTINUING:
-                case PhasorAdvanceResultFlag::DONE_FADEIN:
-                    return false;
-                case PhasorAdvanceResultFlag::DONE_FADEOUT:
-                    if (stopPending) {
-                        SetReadActive(false);
-                        SetWriteActive(false);
-                        state = LoopLayerState::STOPPED;
-                        stopPending = false;
-                        std::cout << "[LoopLayer] stopped loop" << std::endl;
-                    }
-                    return false;
-                case PhasorAdvanceResultFlag::WRAPPED_LOOP:
-                    if (loopEnabled) {
-                        lastPhasorIndex = currentPhasorIndex;
-                        currentPhasorIndex ^= 1;
-                        phasor[currentPhasorIndex].Reset(loopStartFrame);
-                    }
-                    return true;
-                case PhasorAdvanceResultFlag::CROSSED_TRIGGER:
-                    /// TODO: perform a trigger action?
-                    return false;
-            }
-#endif
-
         };
 
         void Reset() {
@@ -267,7 +229,6 @@ namespace mlp {
 
         void Resume() {
             for (int i=0; i<2; ++i) {
-            //for (auto &thePhasor: phasor) {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;

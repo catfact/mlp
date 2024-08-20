@@ -18,22 +18,6 @@ namespace mlp {
 
     typedef BitSet<PhasorAdvanceResultFlag, PhasorAdvanceResultFlag::NUM_FLAGS> PhasorAdvanceResult;
 
-//    struct PhasorAdvanceResult {
-//        std::bitset<static_cast<size_t>(PhasorAdvanceResultFlag::NUM_FLAGS)> flags;
-//
-//        void Set(PhasorAdvanceResultFlag flag) {
-//            flags.set(static_cast<size_t>(flag));
-//        }
-//
-//        void Unset(PhasorAdvanceResultFlag flag) {
-//            flags.reset(static_cast<size_t>(flag));
-//        }
-//
-//        bool Test(PhasorAdvanceResultFlag flag) const {
-//            return flags.test(static_cast<size_t>(flag));
-//        }
-//    };
-
     //------------------------------------------------
 // simplistic  phasor including crossfade
 // for now, just counts integer frames in one direction

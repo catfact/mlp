@@ -155,7 +155,7 @@ absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" 
 
 finished rewrite of layer logic. this was one of those little spirals where things were overcomplicated, then reduced. ah well.
 
-now it is clean, and the modes essentially work. this is an interim level of generality, where layer actions and conditions are somewhat well defined lists of opcodes, but mode behaviors are still hardcoded as lambda functions in c++. at some point, we want runtime-definable opcode lists here, but hardcoding is a good way of exploring the space of what is needed.
+  now it is reasonably clean, and the mode system essentially works. this is an interim level of generality, where layer actions and conditions are somewhat well-defined lists of opcodes, but mode behaviors are still hardcoded as lambda functions in c++. at some point, we want runtime-definable opcode lists here, but hardcoding is a good way of exploring the space of what is needed.x
 
 however there are at least some bugs around overdub behavior right now, so keeping it on WIP branch.
 
