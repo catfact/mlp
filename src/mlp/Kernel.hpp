@@ -25,6 +25,7 @@ namespace mlp {
         std::array<LayerBehavior, numLayers> behavior;
         std::array<LayerInterface, numLayers> layerInterface;
 
+        //--------------
         // currently-selected layer index
         int currentLayer{0};
         // the "innermost" layer doesn't perform actions on the layer "below" it
@@ -35,16 +36,16 @@ namespace mlp {
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
         std::array<LayerBuffer, numLayers> buffer{};
 
-        bool advanceLayerOnNextTap{false};
+        bool shouldAdvanceLayerOnNextTap{false};
 
-        /// mode/behavior flags
-        /// FIXME: maybe encapsulate these binary settings, just to reduce clutter
+        /// global interface flags (not governed by layer behaviors)
         bool clearLayerOnStop{true};
         bool clearLayerOnSet{true};
+
         bool advanceLayerOnLoopOpen{true};
 
     private:
-        /// FIXME: just store this
+        /// FIXME: just store this, duh
         bool IsOuterLayer(int i) {
             return i == (innerLayer+1) % numLayers;
         }
@@ -107,7 +108,7 @@ namespace mlp {
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::LOOPING:
-                    if (advanceLayerOnLoopOpen && advanceLayerOnNextTap) {
+                    if (advanceLayerOnLoopOpen && shouldAdvanceLayerOnNextTap) {
                         std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
                         if (++currentLayer >= numLayers) {
                             std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
@@ -115,7 +116,7 @@ namespace mlp {
                         } else {
                             std::cout << "SetLoopTap(): current layer now = " << currentLayer << std::endl;
                         }
-                        advanceLayerOnNextTap = false;
+                        shouldAdvanceLayerOnNextTap = false;
                     }
                     if (currentLayer >= numLayers) {
                         return;
@@ -128,7 +129,7 @@ namespace mlp {
                     if (clearLayerOnSet) {
                         layer[currentLayer].preserveLevel = 0.f;
                     }
-                    advanceLayerOnNextTap = false;
+                    shouldAdvanceLayerOnNextTap = false;
                     break;
 
                 case LoopLayerState::SETTING:
@@ -136,22 +137,47 @@ namespace mlp {
                     layer[currentLayer].CloseLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
                     IsOuterLayer(currentLayer));
-                    advanceLayerOnNextTap = true;
+                    shouldAdvanceLayerOnNextTap = true;
                     break;
             }
         }
 
         void ToggleOverdub() {
-            // std::cout << "ToggleOverdub(): layer = " << currentLayer << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers)
                 layer[currentLayer].ToggleWrite();
         }
 
 
         void ToggleMute() {
-            // std::cout << "ToggleMute(): layer = " << currentLayer << std::endl;
             if (currentLayer >= 0 && currentLayer < numLayers)
                 layer[currentLayer].ToggleRead();
+        }
+
+        void SetLayerWrite(unsigned int layerIndex, bool value) {
+            assert(layerIndex >= 0 && layerIndex < numLayers);
+            layer[layerIndex].SetWrite(value);
+        }
+
+        void SetLayerClear(unsigned int layerIndex, bool value) {
+            assert(layerIndex >= 0 && layerIndex < numLayers);
+            layer[layerIndex].SetClear(value);
+        }
+
+        void SetLayerRead(unsigned int layerIndex, bool value) {
+            assert(layerIndex >= 0 && layerIndex < numLayers);
+            layer[layerIndex].SetRead(value);
+        }
+
+        void SetWrite(bool value) {
+            SetLayerWrite(currentLayer, value);
+        }
+
+        void SetClear(bool value) {
+            SetLayerClear(currentLayer, value);
+        }
+
+        void SetRead(bool value) {
+            SetLayerRead(currentLayer, value);
         }
 
         void StopLoop() {
@@ -177,7 +203,7 @@ namespace mlp {
             }
             std::cout << "stopped layer; current = " << currentLayer << std::endl;
             // just making sure...
-            advanceLayerOnNextTap = false;
+            shouldAdvanceLayerOnNextTap = false;
         }
 
         void SetPreserveLevel(float level, int layerIndex = -1) {
@@ -193,7 +219,6 @@ namespace mlp {
             }
             layer[layerIndex].recordLevel = level;
         }
-
 
         void SetPlaybackLevel(float level, int layerIndex = -1) {
             if (layerIndex < 0) {
@@ -231,10 +256,11 @@ namespace mlp {
             }
         }
 
-        void SetFadeIncrement(float increment) {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].SetFadeIncrement(increment);
+        void SetFadeIncrement(float increment, int layerIndex = -1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
             }
+            layer[layerIndex].SetFadeIncrement(increment);
         }
 
         void SetLoopEnabled(bool enabled) {

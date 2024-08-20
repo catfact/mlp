@@ -20,7 +20,7 @@ namespace mlp {
         // per-sample phase delta
         float delta{0.01};
         // signed delta, depends on fade direction
-        float sdelta{0.002};
+        float sdelta{};
 
         void UpdateLevel()
         {
@@ -82,7 +82,7 @@ namespace mlp {
         }
 
         bool IsActive() const {
-            return isOpen ? true : (isSwitching ? true: false);
+            return isOpen || isSwitching;
         }
     };
 }

@@ -29,6 +29,7 @@ namespace mlp {
         std::array<FadePhasor, 2> phasor;
         SmoothSwitch writeSwitch;
         SmoothSwitch readSwitch;
+        SmoothSwitch clearSwitch;
 
         ///--- runtime state
         LoopLayerState state{LoopLayerState::STOPPED};
@@ -103,12 +104,48 @@ namespace mlp {
             }
         }
 
+        void SetClearActive(bool active) {
+            if (active) {
+                clearSwitch.Open();
+            } else {
+                clearSwitch.Close();
+            }
+        }
+
         bool ToggleWrite() {
             return writeSwitch.Toggle();
         }
 
         bool ToggleRead() {
             return readSwitch.Toggle();
+        }
+
+        bool ToggleClear() {
+            return clearSwitch.Toggle();
+        }
+
+        void SetWrite(bool active) {
+            if (active) {
+                writeSwitch.Open();
+            } else {
+                writeSwitch.Close();
+            }
+        }
+
+        void SetRead(bool active) {
+            if (active) {
+                readSwitch.Open();
+            } else {
+                readSwitch.Close();
+            }
+        }
+
+        void SetClear(bool active) {
+            if (active) {
+                clearSwitch.Open();
+            } else {
+                clearSwitch.Close();
+            }
         }
 
         void Stop() {
@@ -127,8 +164,9 @@ namespace mlp {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = phasor.currentFrame % bufferFrames;
             for (int ch = 0; ch < numChannels; ++ch) {
-                *(dst + ch) +=
-                        buffer[(bufIdx * numChannels) + ch] * phasor.fadeValue * readSwitch.level * playbackLevel;
+                auto x = buffer[(bufIdx * numChannels) + ch];
+                auto a = phasor.fadeValue * readSwitch.level * playbackLevel;
+                *(dst + ch) += x * a;
             }
         }
 
@@ -137,7 +175,8 @@ namespace mlp {
         void WritePhasor(const float *src, const FadePhasor &phasor) {
             // auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = phasor.currentFrame % bufferFrames;
-            float modPreserve = preserveLevel;
+            /// FIXME: maybe linear inversion of the switch is not ideal
+            float modPreserve = preserveLevel * (1-clearSwitch.level);
             /// we want to modulate the preserve level towards unity as the phasor fades out
             modPreserve += (1.f - modPreserve) * (1.f - phasor.fadeValue);
             /// and also as the write switch disengages
@@ -178,6 +217,7 @@ namespace mlp {
                     }
                 }
             }
+            clearSwitch.Process();
 
             assert(lastPhasorIndex != currentPhasorIndex);
 
