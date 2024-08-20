@@ -116,7 +116,7 @@ namespace mlp {
                         kernel.StopLoop();
                         break;
                     case TapId::Reset:
-                        kernel.ResetCurrent();
+                        kernel.ResetLayer();
                         break;
                 }
             }
@@ -183,19 +183,19 @@ namespace mlp {
                 switch (indexFloatParamChangeRequest.id) {
                     case IndexFloatParamId::LayerPreserveLevel:
                         kernel.SetPreserveLevel(indexFloatParamChangeRequest.value.value,
-                                                (int)indexFloatParamChangeRequest.value.index);
+                                                (int) indexFloatParamChangeRequest.value.index);
                         break;
                     case IndexFloatParamId::LayerRecordLevel:
                         kernel.SetRecordLevel(indexFloatParamChangeRequest.value.value,
-                                              (int)indexFloatParamChangeRequest.value.index);
+                                              (int) indexFloatParamChangeRequest.value.index);
                         break;
                     case IndexFloatParamId::LayerPlaybackLevel:
                         kernel.SetPlaybackLevel(indexFloatParamChangeRequest.value.value,
-                                                (int)indexFloatParamChangeRequest.value.index);
+                                                (int) indexFloatParamChangeRequest.value.index);
                         break;
                     case IndexFloatParamId::LayerFadeTime:
                         kernel.SetFadeIncrement(indexFloatParamChangeRequest.value.value,
-                                                (int)indexFloatParamChangeRequest.value.index);
+                                                (int) indexFloatParamChangeRequest.value.index);
 
                     case IndexFloatParamId::LayerSwitchTime:
                         /// TODO!
@@ -203,26 +203,23 @@ namespace mlp {
                 }
             }
 
-#if 0 /// FIXME...
             ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue> indexIndexParamChangeRequest{};
             while (q.indexIndexQ.try_dequeue(indexIndexParamChangeRequest)) {
                 switch (indexIndexParamChangeRequest.id) {
                     case IndexIndexParamId::LayerLoopStartFrame:
-                        kernel.SetLayerLoopStartFrame(indexIndexParamChangeRequest.value.index,
-                                                      indexIndexParamChangeRequest.value.value);
+                        kernel.SetLoopStartFrame(indexIndexParamChangeRequest.value.value,
+                                                 (int)indexIndexParamChangeRequest.value.index);
                         break;
                     case IndexIndexParamId::LayerLoopEndFrame:
-                        kernel.SetLayerLoopEndFrame(indexIndexParamChangeRequest.value.index,
-                                                    indexIndexParamChangeRequest.value.value);
+                        kernel.SetLoopEndFrame(indexIndexParamChangeRequest.value.value,
+                                               (int)indexIndexParamChangeRequest.value.index);
                         break;
                     case IndexIndexParamId::LayerLoopResetFrame:
-                        kernel.SetLayerLoopResetFrame(indexIndexParamChangeRequest.value.index,
-                                                      indexIndexParamChangeRequest.value.value);
+                        kernel.SetLoopResetFrame(indexIndexParamChangeRequest.value.value,
+                                                 (int)indexIndexParamChangeRequest.value.index);
                         break;
                 }
             }
-
-#endif
             ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue> indexBoolParamChangeRequest{};
             while (q.indexBoolQ.try_dequeue(indexBoolParamChangeRequest)) {
                 switch (indexBoolParamChangeRequest.id) {

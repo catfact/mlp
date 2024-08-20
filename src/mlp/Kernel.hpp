@@ -47,7 +47,7 @@ namespace mlp {
     private:
         /// FIXME: just store this, duh
         bool IsOuterLayer(int i) {
-            return i == (innerLayer+1) % numLayers;
+            return i == (innerLayer + 1) % numLayers;
         }
 
     public:
@@ -136,7 +136,7 @@ namespace mlp {
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
-                    IsOuterLayer(currentLayer));
+                                                            IsOuterLayer(currentLayer));
                     shouldAdvanceLayerOnNextTap = true;
                     break;
             }
@@ -231,29 +231,37 @@ namespace mlp {
             currentLayer = layerIndex;
         }
 
-        void SetLoopStartFrame(frame_t start) {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].loopStartFrame = start;
-                if (layer[currentLayer].resetFrame < layer[currentLayer].loopStartFrame) {
-                    layer[currentLayer].resetFrame = layer[currentLayer].loopStartFrame;
-                }
+        void SetLoopStartFrame(frame_t frame, int layerIndex = -1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
+            }
+            layer[layerIndex].loopStartFrame = frame;
+            if (layer[layerIndex].resetFrame < layer[layerIndex].loopStartFrame) {
+                layer[layerIndex].resetFrame = layer[layerIndex].loopStartFrame;
             }
         }
 
-        void SetLoopEndFrame(frame_t end) {
-            std::cout << "SetLoopEndFrame(): layer = " << currentLayer << "; frame = " << end << std::endl;
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].loopEndFrame = end;
-                if (layer[currentLayer].resetFrame > layer[currentLayer].loopEndFrame) {
-                    layer[currentLayer].resetFrame = layer[currentLayer].loopEndFrame;
-                }
+        void SetLoopEndFrame(frame_t frame, int layerIndex = -1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
             }
+            std::cout << "SetLoopEndFrame(): layer = " << layerIndex << "; frame = " << frame << std::endl;
+            layer[layerIndex].loopEndFrame = frame;
+            if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
+                layer[layerIndex].resetFrame = layer[layerIndex].loopEndFrame;
+            }
+
         }
 
-        void SetLoopResetFrame(frame_t offset) {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].resetFrame = offset;
+        void SetLoopResetFrame(frame_t frame, int layerIndex = -1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
             }
+            layer[layerIndex].resetFrame = frame;
+            if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
+                layer[layerIndex].resetFrame = layer[layerIndex].loopEndFrame;
+            }
+
         }
 
         void SetFadeIncrement(float increment, int layerIndex = -1) {
@@ -263,10 +271,11 @@ namespace mlp {
             layer[layerIndex].SetFadeIncrement(increment);
         }
 
-        void SetLoopEnabled(bool enabled) {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].loopEnabled = enabled;
+        void SetLoopEnabled(bool enabled, int layerIndex = -1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
             }
+            layer[layerIndex].loopEnabled = enabled;
         }
 
         void SetClearOnStop(bool clear) {
@@ -281,13 +290,10 @@ namespace mlp {
             advanceLayerOnLoopOpen = advance;
         }
 
-        void ResetCurrent() {
-            if (currentLayer >= 0 && currentLayer < numLayers) {
-                layer[currentLayer].Reset();
+        void ResetLayer(int layerIndex=-1) {
+            if (layerIndex < 0) {
+                layerIndex = currentLayer;
             }
-        }
-
-        void ResetLayer(int layerIndex) {
             if (layerIndex >= 0 && layerIndex < numLayers) {
                 layer[layerIndex].Reset();
             }
