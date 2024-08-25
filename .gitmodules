@@ -4,3 +4,6 @@
 [submodule "mlp/extern/rtaudio"]
 	path = extern/rtaudio
 	url = https://github.com/thestk/rtaudio.git
+[submodule "extern/JUCE"]
+	path = mlp-plug/JUCE
+	url = https://github.com/juce-framework/JUCE.git
