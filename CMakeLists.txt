@@ -50,3 +50,7 @@ target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_LOCAL})
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_SYSTEM})
 target_link_directories(mlp-cli PUBLIC ${LINK_DIRS})
 target_link_libraries(mlp-cli PUBLIC oscpack rtaudio)
+
+#------------------------------------------------------------
+
+add_subdirectory(mlp-plug)

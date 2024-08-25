@@ -155,10 +155,22 @@ absurdly, i started a latex file (`mode-spec.tex`) describing the "theoretical" 
 
 finished rewrite of layer logic. this was one of those little spirals where things were overcomplicated, then reduced. ah well.
 
-  now it is reasonably clean, and the mode system essentially works. this is an interim level of generality, where layer actions and conditions are somewhat well-defined lists of opcodes, but mode behaviors are still hardcoded as lambda functions in c++. at some point, we want runtime-definable opcode lists here, but hardcoding is a good way of exploring the space of what is needed.x
+  now it is reasonably clean, and the mode system essentially works. this is an interim level of generality, where layer actions and conditions are somewhat well-defined lists of opcodes, but mode behaviors are still hardcoded as lambda functions in c++. at some point, we want runtime-definable opcode lists here, but hardcoding is a good way of exploring the space of what is needed.
 
 however there are at least some bugs around overdub behavior right now, so keeping it on WIP branch.
 
 need to test insert mode, and very much need to have UI feedback soon on the state of the system.
 
 **time**: ~3.5hr
+
+# 2024/8/20
+
+added a lot of per-layer control glue and made things generally more granular. probably addressed overdub issues in the process. still needs testing, more effective GUI, state feedback. 
+
+**time** ~1hr
+
+# 2024/8/23
+
+spent a couple days focused on a quick paying gig, which is rather crucial. things are totally busy and chaotic, but it feels important to dip back into this project to maintain momentum every few days.
+
+a more complete GUI from supercollider feels like low hanging fruit right now, so i'll give it a go...

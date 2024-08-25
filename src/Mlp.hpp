@@ -136,6 +136,9 @@ namespace mlp {
                     case FloatParamId::FadeTime:
                         kernel.SetFadeIncrement(floatParamChangeRequest.value);
                         break;
+                    case FloatParamId::SwitchTime:
+                        // TODO!
+                        break;
                 }
             }
 
@@ -236,8 +239,7 @@ namespace mlp {
                                             indexBoolParamChangeRequest.value.value);
                         break;
                     case IndexBoolParamId::LayerLoopEnabled:
-                        // TODO
-                        // kernel.SetLayerLoopEnabled(indexBoolParamChangeRequest.value.value);
+                        kernel.SetLoopEnabled(indexBoolParamChangeRequest.value.value);
                         break;
                 }
             }

@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include <Constants.hpp>
+#include "Constants.hpp"
 
 namespace mlp {
 
@@ -18,7 +18,7 @@ namespace mlp {
         // actual output value (likely nonlinear)
         float level{0.f};
         // per-sample phase delta
-        float delta{0.01};
+        float delta{0.01f};
         // signed delta, depends on fade direction
         float sdelta{};
 

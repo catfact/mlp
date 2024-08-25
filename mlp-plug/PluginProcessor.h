@@ -2,6 +2,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "Mlp.hpp"
+
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
 {

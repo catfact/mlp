@@ -27,10 +27,10 @@ namespace mlp {
 
         //--------------
         // currently-selected layer index
-        int currentLayer{0};
+        unsigned int currentLayer{0};
         // the "innermost" layer doesn't perform actions on the layer "below" it
         // when all layers are stopped, the next activated layer becomes the innermost
-        int innerLayer{0};
+        unsigned int innerLayer{0};
 
         // non-interleaved stereo buffers
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
@@ -46,7 +46,7 @@ namespace mlp {
 
     private:
         /// FIXME: just store this, duh
-        bool IsOuterLayer(int i) {
+        bool IsOuterLayer(unsigned int i) {
             return i == (innerLayer + 1) % numLayers;
         }
 
@@ -59,22 +59,22 @@ namespace mlp {
             /// we could use a single large buffer, and set a pointer into it for each layer when a loop is opened
             /// the difficulty there becomes how to reclaim segmented buffer space,
             /// when layers can be stopped/cleared in any order
-            for (int i = 0; i < numLayers; ++i) {
+            for (unsigned int i = 0; i < numLayers; ++i) {
                 buffer[i].fill(0.f);
                 layer[i].buffer = buffer[i].data();
             }
             /// initialize interfaces
-            for (int i = 0; i < numLayers; ++i) {
+            for (unsigned int i = 0; i < numLayers; ++i) {
                 layerInterface[i].SetLayer(&layer[i]);
             }
             /// initialize behaviors
-            for (int i = 0; i < numLayers; ++i) {
+            for (unsigned int i = 0; i < numLayers; ++i) {
                 behavior[i].thisLayer = &layerInterface[i];
                 behavior[i].layerBelow = &layerInterface[(i - 1) % numLayers];
                 behavior[i].layerAbove = &layerInterface[(i + 2) % numLayers];
             }
             /// initialize modes
-            for (int i = 0; i < numLayers; ++i) {
+            for (unsigned int i = 0; i < numLayers; ++i) {
                 SetLayerBehaviorMode(behavior[i], LayerBehaviorModeId::MULTIPLY_UNQUANTIZED);
             }
         }
@@ -85,7 +85,7 @@ namespace mlp {
             float y[2]{0.f};
             x[0] = *src++;
             x[1] = *src++;
-            for (int i = 0; i < numLayers; ++i) {
+            for (unsigned int i = 0; i < numLayers; ++i) {
                 auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
                     behavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
@@ -206,45 +206,50 @@ namespace mlp {
             shouldAdvanceLayerOnNextTap = false;
         }
 
-        void SetPreserveLevel(float level, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetPreserveLevel(float level, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].preserveLevel = level;
         }
 
-        void SetRecordLevel(float level, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetRecordLevel(float level, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].recordLevel = level;
         }
 
-        void SetPlaybackLevel(float level, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetPlaybackLevel(float level, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].playbackLevel = level;
         }
 
         void SelectLayer(int layerIndex) {
-            currentLayer = layerIndex;
+            currentLayer = (unsigned int)layerIndex;
         }
 
-        void SetLoopStartFrame(frame_t frame, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetLoopStartFrame(frame_t frame, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].loopStartFrame = frame;
             if (layer[layerIndex].resetFrame < layer[layerIndex].loopStartFrame) {
                 layer[layerIndex].resetFrame = layer[layerIndex].loopStartFrame;
             }
         }
 
-        void SetLoopEndFrame(frame_t frame, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetLoopEndFrame(frame_t frame, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             std::cout << "SetLoopEndFrame(): layer = " << layerIndex << "; frame = " << frame << std::endl;
             layer[layerIndex].loopEndFrame = frame;
             if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
@@ -253,10 +258,11 @@ namespace mlp {
 
         }
 
-        void SetLoopResetFrame(frame_t frame, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetLoopResetFrame(frame_t frame, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].resetFrame = frame;
             if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
                 layer[layerIndex].resetFrame = layer[layerIndex].loopEndFrame;
@@ -264,17 +270,19 @@ namespace mlp {
 
         }
 
-        void SetFadeIncrement(float increment, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetFadeIncrement(float increment, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].SetFadeIncrement(increment);
         }
 
-        void SetLoopEnabled(bool enabled, int layerIndex = -1) {
-            if (layerIndex < 0) {
+        void SetLoopEnabled(bool enabled, int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             layer[layerIndex].loopEnabled = enabled;
         }
 
@@ -290,10 +298,11 @@ namespace mlp {
             advanceLayerOnLoopOpen = advance;
         }
 
-        void ResetLayer(int layerIndex=-1) {
-            if (layerIndex < 0) {
+        void ResetLayer(int aLayerIndex = -1) {
+            unsigned int layerIndex;
+            if (aLayerIndex < 0) {
                 layerIndex = currentLayer;
-            }
+            } else { layerIndex = (unsigned int) aLayerIndex; }
             if (layerIndex >= 0 && layerIndex < numLayers) {
                 layer[layerIndex].Reset();
             }

@@ -34,8 +34,8 @@ namespace mlp {
         ///--- runtime state
         LoopLayerState state{LoopLayerState::STOPPED};
         bool stopPending{false};
-        int currentPhasorIndex{0};
-        int lastPhasorIndex{1};
+        unsigned int currentPhasorIndex{0};
+        unsigned int lastPhasorIndex{1};
 
         ///---- parameters
         // jump to this frame on external reset
@@ -160,34 +160,34 @@ namespace mlp {
         // given a phasor, read from the buffer according to its frame position,
         // and scale the output by its fade value,
         // mixing into the given interleaved audio frame
-        void ReadPhasor(float *dst, const FadePhasor &phasor) {
+        void ReadPhasor(float *dst, const FadePhasor &aPhasor) {
             //auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
-            auto bufIdx = phasor.currentFrame % bufferFrames;
-            for (int ch = 0; ch < numChannels; ++ch) {
+            auto bufIdx = aPhasor.currentFrame % bufferFrames;
+            for (unsigned int ch = 0; ch < numChannels; ++ch) {
                 auto x = buffer[(bufIdx * numChannels) + ch];
-                auto a = phasor.fadeValue * readSwitch.level * playbackLevel;
+                auto a = aPhasor.fadeValue * readSwitch.level * playbackLevel;
                 *(dst + ch) += x * a;
             }
         }
 
         // given a phasor, write to the buffer according to its frame position,
         // scaling record/preserve levels by its fade value
-        void WritePhasor(const float *src, const FadePhasor &phasor) {
+        void WritePhasor(const float *src, const FadePhasor &aPhasor) {
             // auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
-            auto bufIdx = phasor.currentFrame % bufferFrames;
+            auto bufIdx = aPhasor.currentFrame % bufferFrames;
             /// FIXME: maybe linear inversion of the switch is not ideal
             float modPreserve = preserveLevel * (1-clearSwitch.level);
             /// we want to modulate the preserve level towards unity as the phasor fades out
-            modPreserve += (1.f - modPreserve) * (1.f - phasor.fadeValue);
+            modPreserve += (1.f - modPreserve) * (1.f - aPhasor.fadeValue);
             /// and also as the write switch disengages
             /// (TODO: maybe profile this conditional)
             // if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
                 float switchLevel = writeSwitch.level;
                 modPreserve += (1.f - modPreserve) * (1 - switchLevel);
             // }
-            for (int ch = 0; ch < numChannels; ++ch) {
+            for (unsigned int ch = 0; ch < numChannels; ++ch) {
                 float x = *(src + ch);
-                float modRecord = recordLevel * phasor.fadeValue;
+                float modRecord = recordLevel * aPhasor.fadeValue;
                 modRecord *= writeSwitch.level;
                 x *= modRecord;
                 float y = buffer[(bufIdx * numChannels) + ch];
@@ -243,7 +243,7 @@ namespace mlp {
             }
 
             return result;
-        };
+        }
 
         void Reset() {
             lastPhasorIndex = currentPhasorIndex;
@@ -268,7 +268,7 @@ namespace mlp {
         }
 
         void Resume() {
-            for (int i=0; i<2; ++i) {
+            for (unsigned int i=0; i<2; ++i) {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;

@@ -66,15 +66,21 @@ namespace mlp {
 
         void Clear() {
             for (auto &action: conditionAction) {
-                action = [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {};
+                action = [](LayerInterface *aThisLayer, LayerInterface *aLayerBelow, LayerInterface *aLayerAbove,
+                            bool aIsInnerLayer, bool aIsOuterLayer) {
+                    (void) aThisLayer;
+                    (void) aLayerBelow;
+                    (void) aLayerAbove;
+                    (void) aIsInnerLayer;
+                    (void) aIsOuterLayer;
+                };
             }
             for (auto &counter: thisLayer->conditionCounter) {
                 counter = -1;
             }
         }
 
-        void ProcessCondition(LayerConditionId id, bool isInnerLayer, bool isOuterLayer) {
+        void ProcessCondition(LayerConditionId id, bool aIsInnerLayer, bool aIsOuterLayer) {
             int &counter = thisLayer->conditionCounter[static_cast<size_t>(id)];
             if (counter == 0) {
                 // no actions taken if the counter has run down
@@ -85,7 +91,7 @@ namespace mlp {
                 counter--;
             }
             auto &action = conditionAction[static_cast<size_t>(id)];
-            action(thisLayer, layerBelow, layerAbove, isInnerLayer, isOuterLayer);
+            action(thisLayer, layerBelow, layerAbove, aIsInnerLayer, aIsOuterLayer);
         }
 
         void SetAction(LayerConditionId id, LayerActionFunction action) {
@@ -118,6 +124,9 @@ namespace mlp {
                         (LayerConditionId::OpenLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::StoreReset);
                              }
@@ -126,6 +135,9 @@ namespace mlp {
                         (LayerConditionId::CloseLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
@@ -135,6 +147,9 @@ namespace mlp {
                         (LayerConditionId::Wrap,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
@@ -150,6 +165,9 @@ namespace mlp {
                         (LayerConditionId::OpenLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::StoreTrigger);
                                  layerBelow->DoAction(LayerActionId::Pause);
@@ -159,6 +177,9 @@ namespace mlp {
                         (LayerConditionId::CloseLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::Resume);
                              }
@@ -167,6 +188,9 @@ namespace mlp {
                         (LayerConditionId::Wrap,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)thisLayer;
+                             (void)layerAbove;
+                             (void)isOuterLayer;
                              if (!isInnerLayer) {
                                  layerBelow->DoAction(LayerActionId::Resume);
                              }
@@ -175,6 +199,8 @@ namespace mlp {
                         (LayerConditionId::Trigger,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
                             bool isInnerLayer, bool isOuterLayer) {
+                             (void)layerBelow;
+                             (void)isInnerLayer;
                              if (!isOuterLayer) {
                                  layerAbove->DoAction(LayerActionId::Reset);
                                  thisLayer->DoAction(LayerActionId::Pause);
