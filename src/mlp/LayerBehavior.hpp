@@ -36,6 +36,8 @@ namespace mlp {
         std::array<std::function<void()>, static_cast<size_t>(LayerActionId::NUM_ACTIONS)> actions;
 
         bool *loopEnabled{nullptr};
+        bool isInner;
+        bool isOuter;
 
         LayerOutputs *outputs{nullptr};
 
@@ -78,10 +80,10 @@ namespace mlp {
     typedef std::function<void(
             LayerInterface *, // this layer
             LayerInterface *, // layer below
-            LayerInterface *, // layer above
-            bool, // isInnerLayer
-            bool  // isOuterLayer
-            )> LayerActionFunction;
+            LayerInterface * // layer above
+//            bool, // isInnerLayer
+//            bool  // isOuterLayer
+    )> LayerActionFunction;
 
     // defines the conditions->actions mapping for a given layer
     struct LayerBehavior {
@@ -92,13 +94,10 @@ namespace mlp {
 
         void Clear() {
             for (auto &action: conditionAction) {
-                action = [](LayerInterface *aThisLayer, LayerInterface *aLayerBelow, LayerInterface *aLayerAbove,
-                            bool aIsInnerLayer, bool aIsOuterLayer) {
+                action = [](LayerInterface *aThisLayer, LayerInterface *aLayerBelow, LayerInterface *aLayerAbove) {
                     (void) aThisLayer;
                     (void) aLayerBelow;
                     (void) aLayerAbove;
-                    (void) aIsInnerLayer;
-                    (void) aIsOuterLayer;
                 };
             }
             for (auto &counter: thisLayer->conditionCounter) {
@@ -117,7 +116,7 @@ namespace mlp {
                 counter--;
             }
             auto &action = conditionAction[static_cast<size_t>(id)];
-            action(thisLayer, layerBelow, layerAbove, aIsInnerLayer, aIsOuterLayer);
+            action(thisLayer, layerBelow, layerAbove);
         }
 
         void SetAction(LayerConditionId id, LayerActionFunction action) {
@@ -148,35 +147,26 @@ namespace mlp {
             case LayerBehaviorModeId::MULTIPLY_UNQUANTIZED:
                 behavior.SetAction
                         (LayerConditionId::OpenLoop,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::StoreReset);
                              }
                          });
                 behavior.SetAction
                         (LayerConditionId::CloseLoop,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });
 
                 behavior.SetAction
                         (LayerConditionId::Wrap,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });
@@ -189,45 +179,34 @@ namespace mlp {
 
                 behavior.SetAction
                         (LayerConditionId::OpenLoop,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::StoreTrigger);
                                  layerBelow->DoAction(LayerActionId::Pause);
                              }
                          });
                 behavior.SetAction
                         (LayerConditionId::CloseLoop,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Resume);
                              }
                          });
                 behavior.SetAction
                         (LayerConditionId::Wrap,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)thisLayer;
-                             (void)layerAbove;
-                             (void)isOuterLayer;
-                             if (!isInnerLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerAbove;
+                             if (!thisLayer->isInner && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Resume);
                              }
                          });
                 behavior.SetAction
                         (LayerConditionId::Trigger,
-                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove,
-                            bool isInnerLayer, bool isOuterLayer) {
-                             (void)layerBelow;
-                             (void)isInnerLayer;
-                             if (!isOuterLayer) {
+                         [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
+                             (void) layerBelow;
+                             if (!thisLayer->isOuter && !layerAbove->isInner) {
                                  layerAbove->DoAction(LayerActionId::Reset);
                                  thisLayer->DoAction(LayerActionId::Pause);
                              }

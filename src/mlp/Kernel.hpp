@@ -38,9 +38,10 @@ namespace mlp {
 
         // currently-selected layer index
         unsigned int currentLayer{0};
-        // when all layers are stopped, the next activated layer becomes the innermost
+        // the "innermost" layer will not trigger actions on layers "below" it
         unsigned int innerLayer{0};
-
+        // the "outermost" layer will not be triggered by layers "above" it
+        unsigned int outerLayer{0};
 
         // temp flag
         bool shouldAdvanceLayerOnNextTap{false};
@@ -49,13 +50,6 @@ namespace mlp {
         bool clearLayerOnStop{true};
         bool clearLayerOnSet{true};
         bool advanceLayerOnLoopOpen{true};
-
-    private:
-        /// FIXME: just store this, duh
-        bool IsOuterLayer(unsigned int i) {
-            return i == (innerLayer + 1) % numLayers;
-        }
-
     public:
 
         Kernel() {
@@ -83,6 +77,9 @@ namespace mlp {
             for (unsigned int i = 0; i < numLayers; ++i) {
                 SetLayerBehaviorMode(layerBehavior[i], LayerBehaviorModeId::MULTIPLY_UNQUANTIZED);
             }
+
+            SetInnerLayer(0);
+            SetOuterLayer(0);
         }
 
         // process a single *stereo interleaved* audio frame
@@ -94,11 +91,11 @@ namespace mlp {
             for (unsigned int i = 0; i < numLayers; ++i) {
                 auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
-                    layerBehavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
+                    layerBehavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, i == outerLayer);
                     SetOutputLayerFlag(i, LayerOutputFlagId::Wrapped);
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
-                    layerBehavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, IsOuterLayer(i));
+                    layerBehavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, i == outerLayer);
                     SetOutputLayerFlag(i, LayerOutputFlagId::Triggered);
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
@@ -110,7 +107,9 @@ namespace mlp {
         }
 
         void SetOutputLayerFlag(unsigned int layerIndex, LayerOutputFlagId flag) {
-            outputs->layers[layerIndex].flags.Set(flag);
+            if (outputs) {
+                outputs->layers[layerIndex].flags.Set(flag);
+            }
         }
 
         void InitializeOutputs(OutputsData *aOutputs) {
@@ -132,6 +131,23 @@ namespace mlp {
             }
         }
 
+        void SetInnerLayer(unsigned int aLayerIndex)
+        {
+            std::cout << "setting inner layer: " << aLayerIndex << std::endl;
+            layerInterface[innerLayer].isInner = false;
+            innerLayer = aLayerIndex;
+            layerInterface[innerLayer].isInner = true;
+            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Inner);
+        }
+
+        void SetOuterLayer(unsigned int aLayerIndex) {
+            std::cout << "setting outer layer: " << aLayerIndex << std::endl;
+            layerInterface[outerLayer].isOuter = false;
+            outerLayer = aLayerIndex;
+            layerInterface[outerLayer].isOuter = true;
+            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Outer);
+        }
+
         //------------------------------------------------
         //-- control
 
@@ -145,7 +161,7 @@ namespace mlp {
                     if (advanceLayerOnLoopOpen && shouldAdvanceLayerOnNextTap) {
                         //std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
                         if (++currentLayer >= numLayers) {
-                            currentLayer = 0;
+                            SetCurrentLayer(0);
                         }
                         SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
                         shouldAdvanceLayerOnNextTap = false;
@@ -154,24 +170,28 @@ namespace mlp {
                         return;
                     }
 
-                    //std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
+                    std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
-                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop, currentLayer == innerLayer,
-                                                                 IsOuterLayer(currentLayer));
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Opened);
+                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop,
+                                                                 currentLayer == innerLayer,
+                                                                 currentLayer == outerLayer);
                     if (clearLayerOnSet) {
-                        //layer[currentLayer].preserveLevel = 0.f;
-                        layer[currentLayer].clearSwitch.Open();
-                        SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
+                        layer[currentLayer].SetClear(true);
                     }
                     shouldAdvanceLayerOnNextTap = false;
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
                     break;
 
                 case LoopLayerState::SETTING:
-                    // std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
+                    std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
-                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
-                                                                 IsOuterLayer(currentLayer));
+                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop,
+                                                                 currentLayer == innerLayer,
+                                                                 currentLayer == outerLayer);
                     shouldAdvanceLayerOnNextTap = true;
+                    SetOuterLayer(currentLayer);
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Closed);
                     break;
             }
         }
@@ -227,19 +247,21 @@ namespace mlp {
                 anyLayersActive |= theLayer.GetIsActive();
             }
             if (!anyLayersActive) {
-                std::cout << "(selected is inner layer)" << std::endl;
-                innerLayer = currentLayer;
-                SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Inner);
+                std::cout << "(no layers active; selection is inner)" << std::endl;
+                SetInnerLayer(currentLayer);
             } else {
                 std::cout << "(decrementing selection)" << std::endl;
-                if (--currentLayer < 0) {
-                    currentLayer = numLayers - 1;
+                if (currentLayer == 0) {
+                    SetCurrentLayer(numLayers - 1);
+                } else {
+                    SetCurrentLayer(currentLayer - 1);
+                }
+                if (advanceLayerOnLoopOpen) {
+                    shouldAdvanceLayerOnNextTap = true;
                 }
             }
-            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
+            SetOuterLayer(currentLayer);
             std::cout << "stopped layer; current = " << currentLayer << std::endl;
-            // just making sure...
-            shouldAdvanceLayerOnNextTap = false;
         }
 
         void SetPreserveLevel(float level, int aLayerIndex = -1) {
@@ -257,8 +279,9 @@ namespace mlp {
             layer[layerIndex].playbackLevel = level;
         }
 
-        void SelectLayer(int layerIndex) {
-            currentLayer = (unsigned int)layerIndex;
+        void SetCurrentLayer(unsigned int layerIndex) {
+            currentLayer = layerIndex;
+            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
         }
 
         void SetLoopStartFrame(frame_t frame, int aLayerIndex = -1) {

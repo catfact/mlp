@@ -67,9 +67,10 @@ namespace mlp {
             if (resetFrame < loopStartFrame) {
                 resetFrame = loopStartFrame;
             }
-
+            loopEndFrame = bufferFrames - 1;
             state = LoopLayerState::SETTING;
-            SetWriteActive(true);
+            SetWrite(true);
+            assert(phasor[currentPhasorIndex].isActive == false);
             phasor[currentPhasorIndex].Reset();
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
@@ -77,8 +78,8 @@ namespace mlp {
 
         void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
             state = LoopLayerState::LOOPING;
-            SetReadActive(shouldUnmute);
-            SetWriteActive(shouldDub);
+            SetRead(shouldUnmute);
+            SetWrite(shouldDub);
             lastPhasorIndex = currentPhasorIndex;
             currentPhasorIndex ^= 1;
 
@@ -88,32 +89,32 @@ namespace mlp {
             loopEndFrame = newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
             newPhasor.Reset(loopStartFrame);
-            //std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
+            std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
-        void SetWriteActive(bool active) {
-            if (active) {
-                writeSwitch.Open();
-            } else {
-                writeSwitch.Close();
-            }
-        }
-
-        void SetReadActive(bool active) {
-            if (active) {
-                readSwitch.Open();
-            } else {
-                readSwitch.Close();
-            }
-        }
-
-        void SetClearActive(bool active) {
-            if (active) {
-                clearSwitch.Open();
-            } else {
-                clearSwitch.Close();
-            }
-        }
+//        void SetWriteActive(bool active) {
+//            if (active) {
+//                writeSwitch.Open();
+//            } else {
+//                writeSwitch.Close();
+//            }
+//        }
+//
+//        void SetReadActive(bool active) {
+//            if (active) {
+//                readSwitch.Open();
+//            } else {
+//                readSwitch.Close();
+//            }
+//        }
+//
+//        void SetClearActive(bool active) {
+//            if (active) {
+//                clearSwitch.Open();
+//            } else {
+//                clearSwitch.Close();
+//            }
+//        }
 
         bool ToggleWrite() {
             return writeSwitch.Toggle();
@@ -228,8 +229,8 @@ namespace mlp {
 
             if (result.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
                 if (stopPending) {
-                    SetReadActive(false);
-                    SetWriteActive(false);
+                    SetRead(false);
+                    SetWrite(false);
                     state = LoopLayerState::STOPPED;
                     stopPending = false;
                     outputs->flags.Set(LayerOutputFlagId::Stopped);

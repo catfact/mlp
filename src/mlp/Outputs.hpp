@@ -9,6 +9,7 @@ namespace mlp {
     enum class LayerOutputFlagId {
         Selected=0,
         Inner,
+        Outer,
         Wrapped,
         Looped,
         Triggered,
@@ -19,12 +20,15 @@ namespace mlp {
         Active,
         Stopped,
         Clearing,
+        Opened,
+        Closed,
         Count
     };
 
     static const char LayerOutputFlagLabel[32][static_cast<unsigned long>(LayerOutputFlagId::Count)] = {
         "Selected",
         "Inner",
+        "Outer",
         "Wrapped",
         "Looped",
         "Triggered",
@@ -35,6 +39,8 @@ namespace mlp {
         "Active",
         "Stopped",
         "Clearing",
+        "Opened",
+        "Closed"
     };
 
 

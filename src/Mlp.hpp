@@ -191,7 +191,7 @@ namespace mlp {
             while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
                     case IndexParamId::SelectLayer:
-                        kernel.SelectLayer((int) indexParamChangeRequest.value);
+                        kernel.SetCurrentLayer((int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::ResetLayer:
                         kernel.ResetLayer((int) indexParamChangeRequest.value);

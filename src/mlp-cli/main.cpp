@@ -205,7 +205,7 @@ public:
                 LayerFlagsMessageData flagsData;
                 while (layerFlagsQ.try_dequeue(flagsData)) {
                     /// TODO: send the flags data... (as a blob? bool array? separate messages?)
-                    std::cout << "layer " << flagsData.layer << "flags: ";
+                    std::cout << "layer " << flagsData.layer << ": ";
                     for (int i = 0; i < static_cast<int>(LayerOutputFlagId::Count); ++i) {
                         if (flagsData.flags.Test(static_cast<LayerOutputFlagId>(i))) {
                             std::cout << LayerOutputFlagLabel[i] << ", ";
