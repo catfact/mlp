@@ -21,6 +21,14 @@ namespace mlp {
         bool Test(IdClass flag) const {
             return flags.test(static_cast<size_t>(flag));
         }
+
+        bool Any() const {
+            return flags.any();
+        }
+
+        bool None() const {
+            return flags.none();
+        }
     };
 
 }

@@ -96,18 +96,20 @@ namespace mlp {
         };
         ParamChangeQ paramChangeQ;
 
-        moodycamel::ReaderWriterQueue<TapId> tapQ;
+        struct OutputsQ {
+            moodycamel::ReaderWriterQueue<mlp::LayerFlagsMessageData> layerFlagsQ;
+            moodycamel::ReaderWriterQueue<mlp::LayerPositionMessageData> layerPositionQ;
+        };
+        OutputsQ outputsQ;
 
         Kernel kernel;
-        mlp::Outputs outputs;
-        mlp::OutputsData outputsDataTemp;
+        mlp::OutputsData outputsData;
         unsigned long int framesSinceOutput = 0;
 
     public:
         void ProcessAudioBlock(const float *input, float *output, unsigned int numFrames) {
 
             ProcessParamChanges();
-            //kernel.InitializeOutputs(&outputsDataTemp);
 
             for (unsigned int i = 0; i < numFrames; ++i) {
                 *output = 0.f;
@@ -115,23 +117,34 @@ namespace mlp {
                 kernel.ProcessFrame(input, output);
             }
 
-            //kernel.FinalizeOutputs();
-            //outputs.Write(outputsDataTemp);
+            ProcessOutputs(numFrames);
+        }
 
+        moodycamel::ReaderWriterQueue<mlp::LayerFlagsMessageData> &GetLayerFlagsQ() {
+            return outputsQ.layerFlagsQ;
+        }
+
+        moodycamel::ReaderWriterQueue<mlp::LayerPositionMessageData> &GetLayerPositionQ() {
+            return outputsQ.layerPositionQ;
+        }
+
+    private:
+
+        void ProcessOutputs(unsigned int numFrames) {
             framesSinceOutput += numFrames;
             if (framesSinceOutput >= framesPerOutput) {
                 framesSinceOutput = 0;
                 kernel.FinalizeOutputs();
-                outputs.Write(outputsDataTemp);
-                kernel.InitializeOutputs(&outputsDataTemp);
+                for (unsigned int i = 0; i < numLoopLayers; ++i) {
+                    if (outputsData.layers[i].flags.Any()) {
+                        outputsQ.layerFlagsQ.enqueue({i, outputsData.layers[i].flags});
+                    }
+                }
+                kernel.InitializeOutputs(&outputsData);
             }
         }
 
-
-    private:
-        void ProcessParamChanges()
-        {
-
+        void ProcessParamChanges() {
             TapId tapId;
             while (paramChangeQ.tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
@@ -243,15 +256,15 @@ namespace mlp {
                 switch (indexIndexParamChangeRequest.id) {
                     case IndexIndexParamId::LayerLoopStartFrame:
                         kernel.SetLoopStartFrame(indexIndexParamChangeRequest.value.value,
-                                                 (int)indexIndexParamChangeRequest.value.index);
+                                                 (int) indexIndexParamChangeRequest.value.index);
                         break;
                     case IndexIndexParamId::LayerLoopEndFrame:
                         kernel.SetLoopEndFrame(indexIndexParamChangeRequest.value.value,
-                                               (int)indexIndexParamChangeRequest.value.index);
+                                               (int) indexIndexParamChangeRequest.value.index);
                         break;
                     case IndexIndexParamId::LayerLoopResetFrame:
                         kernel.SetLoopResetFrame(indexIndexParamChangeRequest.value.value,
-                                                 (int)indexIndexParamChangeRequest.value.index);
+                                                 (int) indexIndexParamChangeRequest.value.index);
                         break;
                 }
             }
@@ -276,6 +289,8 @@ namespace mlp {
                 }
             }
         }
+
+
     public:
 
         //-----------------------------------------------------------------------------------

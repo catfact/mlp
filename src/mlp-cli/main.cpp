@@ -1,6 +1,7 @@
 #include <iostream>
-#include <thread>
 #include <memory>
+#include <semaphore>
+#include <thread>
 
 /// rtaudio
 #include "RtAudio.h"
@@ -114,8 +115,7 @@ int InitAudio() {
         std::cout << "started audio device stream " << std::endl;
         std::cout << "buffer size = " << bufferFrames << std::endl;
     } catch (std::exception &e) {
-
-        //e.printMessage();
+        std::cerr << "error starting audio device stream: " << e.what() << std::endl;
         return 1;
     }
 
@@ -188,13 +188,38 @@ class OscSender {
     static std::unique_ptr<UdpTransmitSocket> txSocket;
     static std::unique_ptr<std::thread> txThread;
 
+    //std::binary_semaphore dataReady{0};
 
 public:
     void Init() {
         txSocket = std::make_unique<UdpTransmitSocket>(
             IpEndpointName("localhost", oscTxPort));
 
+        txThread = std::make_unique<std::thread>([&] {
+            while (!shouldQuit) {
+
+                auto &layerFlagsQ = m.GetLayerFlagsQ();
+                LayerFlagsMessageData flagsData;
+                while (layerFlagsQ.try_dequeue(flagsData)) {
+                    /// TODO: send the flags data... (as a blob? bool array? separate messages?)
+                }
+
+                auto &layerPositionQ = m.GetLayerPositionQ();
+                LayerPositionMessageData posData;
+                while (layerPositionQ.try_dequeue(posData)) {
+                    // TODO: send the position data...
+                }
+
+            }
+        });
     }
+
+    void SendInt(const char *address, int value) {
+        osc::OutboundPacketStream p(buffer, bufferSize);
+        p << osc::BeginMessage(address) << value << osc::EndMessage;
+        txSocket->Send(p.Data(), p.Size());
+    }
+
 //
 //    void SendFloat(const char *address, float value) {
 //        osc::OutboundPacketStream p(buffer, bufferSize);
@@ -202,11 +227,7 @@ public:
 //        txSocket->Send(p.Data(), p.Size());
 //    }
 //
-//    void SendInt(const char *address, int value) {
-//        osc::OutboundPacketStream p(buffer, bufferSize);
-//        p << osc::BeginMessage(address) << value << osc::EndMessage;
-//        txSocket->Send(p.Data(), p.Size());
-//    }
+
 //
 //    void SendBool(const char *address, bool value) {
 //        osc::OutboundPacketStream p(buffer, bufferSize);

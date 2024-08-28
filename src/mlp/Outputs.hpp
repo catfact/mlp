@@ -35,17 +35,32 @@ namespace mlp {
         }
     };
 
+    struct LayerFlagsMessageData {
+        unsigned int layer;
+        LayerOutputFlags flags;
+    };
+
+    struct LayerPositionMessageData {
+        unsigned int layer;
+        frame_t positionRange[2];
+    };
+
+
     static const OutputsData defaultOutputsData{};
 
-    class Outputs {
-        std::atomic<OutputsData> data;
-    public:
-        void Read(OutputsData& dst)  {
-            dst = data.exchange(defaultOutputsData);
-        }
-        void Write(OutputsData& src)  {
-            data.store(src);
-        }
-    };
+//    class Outputs {
+//        std::atomic<OutputsData> data;
+//    public:
+//        void Read(OutputsData& dst)  {
+//            dst = data.exchange(defaultOutputsData);
+//        }
+//        void Write(OutputsData& src)  {
+//            data.store(src);
+//        }
+//        static void WriteToQueue(OutputsData& src, moodycamel::ReaderWriterQueue<OutputsData>& queue) {
+//            queue.try_enqueue(src);
+//        }
+//
+//    };
 
 }
