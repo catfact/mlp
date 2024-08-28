@@ -7,6 +7,7 @@
 
 #include "Constants.hpp"
 #include "LoopLayer.hpp"
+#include "Outputs.hpp"
 #include "Types.hpp"
 
 namespace mlp {
@@ -31,12 +32,13 @@ namespace mlp {
 
     struct LayerInterface {
         std::array<int, static_cast<size_t>(LayerConditionId::NUM_CONDITIONS)> conditionCounter{-1};
+
         std::array<std::function<void()>, static_cast<size_t>(LayerActionId::NUM_ACTIONS)> actions;
+
         bool *loopEnabled{nullptr};
 
-        /// FIXME: these actions need to be able to spawn output events
-        /// (e.g., reporting that a reset has occured)
-        /// means the layer needs a reference to an OutputsData object
+        LayerOutputs *outputs{nullptr};
+
         void SetLayer(LoopLayer<numLoopChannels, bufferFrames> *layer) {
             actions[static_cast<size_t>(LayerActionId::Reset)] = [layer]() { layer->Reset(); };
             actions[static_cast<size_t>(LayerActionId::Restart)] = [layer]() { layer->Restart(); };
@@ -49,6 +51,27 @@ namespace mlp {
 
         void DoAction(LayerActionId id) {
             actions[static_cast<size_t>(id)]();
+            if (outputs) {
+                switch (id) {
+                    case LayerActionId::Reset:
+                        outputs->flags.Set(LayerOutputFlagId::Reset);// ->SetLayerFlag(index, LayerOutputFlagId::Reset);
+                        break;
+                    case LayerActionId::Pause:
+                        outputs->flags.Set(LayerOutputFlagId::Paused);
+                        break;
+                    case LayerActionId::Resume:
+                        outputs->flags.Set(LayerOutputFlagId::Resumed);
+                        break;
+                    case LayerActionId::StoreTrigger:
+                        outputs->flags.Set(LayerOutputFlagId::Triggered);
+                        break;
+                    case LayerActionId::StoreReset:
+                        outputs->flags.Set(LayerOutputFlagId::Reset);
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     };
 

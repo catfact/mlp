@@ -112,10 +112,11 @@ namespace mlp {
         }
 
         void InitializeOutputs(OutputsData *aOutputs) {
-            this->outputs = aOutputs;
-            *(this->outputs) = defaultOutputsData;
+            outputs = aOutputs;
+            *outputs = defaultOutputsData;
             for (unsigned int i = 0; i < numLayers; ++i) {
                 outputs->layers[i].positionRange[0] = layer[i].GetCurrentFrame();
+                layerInterface[i].outputs = &outputs->layers[i];
             }
         }
 

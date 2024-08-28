@@ -173,7 +173,6 @@ namespace mlp {
         // given a phasor, write to the buffer according to its frame position,
         // scaling record/preserve levels by its fade value
         void WritePhasor(const float *src, const FadePhasor &aPhasor) {
-            // auto bufIdx = (phasor.currentFrame + phasor.frameOffset) % bufferFrames;
             auto bufIdx = aPhasor.currentFrame % bufferFrames;
             /// FIXME: maybe linear inversion of the switch is not ideal
             float modPreserve = preserveLevel * (1-clearSwitch.level);
