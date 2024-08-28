@@ -85,7 +85,7 @@ namespace mlp {
 
     private:
 
-        struct Q {
+        struct ParamChangeQ {
             moodycamel::ReaderWriterQueue<TapId> tapQ;
             moodycamel::ReaderWriterQueue<ParamChangeRequest<FloatParamId, float>> floatQ;
             moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexParamId, unsigned long int>> indexQ;
@@ -94,14 +94,46 @@ namespace mlp {
             moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue>> indexIndexQ;
             moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue>> indexBoolQ;
         };
-        Q q;
+        ParamChangeQ paramChangeQ;
+
+        moodycamel::ReaderWriterQueue<TapId> tapQ;
+
         Kernel kernel;
+        mlp::Outputs outputs;
+        mlp::OutputsData outputsDataTemp;
+        unsigned long int framesSinceOutput = 0;
 
     public:
         void ProcessAudioBlock(const float *input, float *output, unsigned int numFrames) {
 
+            ProcessParamChanges();
+            //kernel.InitializeOutputs(&outputsDataTemp);
+
+            for (unsigned int i = 0; i < numFrames; ++i) {
+                *output = 0.f;
+                *(output + 1) = 0.f;
+                kernel.ProcessFrame(input, output);
+            }
+
+            //kernel.FinalizeOutputs();
+            //outputs.Write(outputsDataTemp);
+
+            framesSinceOutput += numFrames;
+            if (framesSinceOutput >= framesPerOutput) {
+                framesSinceOutput = 0;
+                kernel.FinalizeOutputs();
+                outputs.Write(outputsDataTemp);
+                kernel.InitializeOutputs(&outputsDataTemp);
+            }
+        }
+
+
+    private:
+        void ProcessParamChanges()
+        {
+
             TapId tapId;
-            while (q.tapQ.try_dequeue(tapId)) {
+            while (paramChangeQ.tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
                     case TapId::SetLoop:
                         kernel.SetLoopTap();
@@ -122,7 +154,7 @@ namespace mlp {
             }
 
             ParamChangeRequest<FloatParamId, float> floatParamChangeRequest{};
-            while (q.floatQ.try_dequeue(floatParamChangeRequest)) {
+            while (paramChangeQ.floatQ.try_dequeue(floatParamChangeRequest)) {
                 switch (floatParamChangeRequest.id) {
                     case FloatParamId::PreserveLevel:
                         kernel.SetPreserveLevel(floatParamChangeRequest.value);
@@ -143,7 +175,7 @@ namespace mlp {
             }
 
             ParamChangeRequest<IndexParamId, unsigned long int> indexParamChangeRequest{};
-            while (q.indexQ.try_dequeue(indexParamChangeRequest)) {
+            while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
                     case IndexParamId::SelectLayer:
                         kernel.SelectLayer((int) indexParamChangeRequest.value);
@@ -164,7 +196,7 @@ namespace mlp {
             }
 
             ParamChangeRequest<BoolParamId, bool> boolParamChangeRequest{};
-            while (q.boolQ.try_dequeue(boolParamChangeRequest)) {
+            while (paramChangeQ.boolQ.try_dequeue(boolParamChangeRequest)) {
                 switch (boolParamChangeRequest.id) {
                     case BoolParamId::WriteEnabled:
                         kernel.SetWrite(boolParamChangeRequest.value);
@@ -182,7 +214,7 @@ namespace mlp {
             }
 
             ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue> indexFloatParamChangeRequest{};
-            while (q.indexFloatQ.try_dequeue(indexFloatParamChangeRequest)) {
+            while (paramChangeQ.indexFloatQ.try_dequeue(indexFloatParamChangeRequest)) {
                 switch (indexFloatParamChangeRequest.id) {
                     case IndexFloatParamId::LayerPreserveLevel:
                         kernel.SetPreserveLevel(indexFloatParamChangeRequest.value.value,
@@ -207,7 +239,7 @@ namespace mlp {
             }
 
             ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue> indexIndexParamChangeRequest{};
-            while (q.indexIndexQ.try_dequeue(indexIndexParamChangeRequest)) {
+            while (paramChangeQ.indexIndexQ.try_dequeue(indexIndexParamChangeRequest)) {
                 switch (indexIndexParamChangeRequest.id) {
                     case IndexIndexParamId::LayerLoopStartFrame:
                         kernel.SetLoopStartFrame(indexIndexParamChangeRequest.value.value,
@@ -224,7 +256,7 @@ namespace mlp {
                 }
             }
             ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue> indexBoolParamChangeRequest{};
-            while (q.indexBoolQ.try_dequeue(indexBoolParamChangeRequest)) {
+            while (paramChangeQ.indexBoolQ.try_dequeue(indexBoolParamChangeRequest)) {
                 switch (indexBoolParamChangeRequest.id) {
                     case IndexBoolParamId::LayerWriteEnabled:
                         kernel.SetLayerWrite(indexBoolParamChangeRequest.value.index,
@@ -243,40 +275,37 @@ namespace mlp {
                         break;
                 }
             }
-
-            for (unsigned int i = 0; i < numFrames; ++i) {
-                *output = 0.f;
-                *(output + 1) = 0.f;
-                kernel.ProcessFrame(input, output);
-            }
         }
+    public:
 
+        //-----------------------------------------------------------------------------------
+        //--- param change API
         void Tap(TapId tapId) {
-            q.tapQ.enqueue(tapId);
+            paramChangeQ.tapQ.enqueue(tapId);
         }
 
         void FloatParamChange(FloatParamId id, float value) {
-            q.floatQ.enqueue({id, value});
+            paramChangeQ.floatQ.enqueue({id, value});
         }
 
         void IndexParamChange(IndexParamId id, unsigned long int value) {
-            q.indexQ.enqueue({id, value});
+            paramChangeQ.indexQ.enqueue({id, value});
         }
 
         void BoolParamChange(BoolParamId id, bool value) {
-            q.boolQ.enqueue({id, value});
+            paramChangeQ.boolQ.enqueue({id, value});
         }
 
         void IndexFloatParamChange(IndexFloatParamId id, unsigned int index, float value) {
-            q.indexFloatQ.enqueue({id, {index, value}});
+            paramChangeQ.indexFloatQ.enqueue({id, {index, value}});
         }
 
         void IndexIndexParamChange(IndexIndexParamId id, unsigned int index, unsigned long int value) {
-            q.indexIndexQ.enqueue({id, {index, value}});
+            paramChangeQ.indexIndexQ.enqueue({id, {index, value}});
         }
 
         void IndexBoolParamChange(IndexBoolParamId id, unsigned int index, bool value) {
-            q.indexBoolQ.enqueue({id, {index, value}});
+            paramChangeQ.indexBoolQ.enqueue({id, {index, value}});
         }
 
 

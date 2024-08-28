@@ -6,13 +6,15 @@
 #include "RtAudio.h"
 
 /// oscpack
+#include "osc/OscOutboundPacketStream.h"
 #include "osc/OscReceivedElements.h"
 #include "osc/OscPacketListener.h"
 #include "ip/UdpSocket.h"
 
 #include "../Mlp.hpp"
 
-static const int oscPort = 9000;
+static const int oscRxPort = 9000;
+static const int oscTxPort = 9001;
 
 #if 0
 static const int blockSize = 64;
@@ -25,9 +27,6 @@ using namespace mlp;
 
 Mlp m;
 RtAudio adac;
-
-static std::unique_ptr<UdpListeningReceiveSocket> rxSocket;
-static std::unique_ptr<std::thread> rxThread;
 
 static volatile bool shouldQuit = false;
 static volatile bool isMonoInput = false;
@@ -97,8 +96,7 @@ int InitAudio() {
             std::cerr << "only mono input available" << std::endl;
             isMonoInput = true;
             iParams.nChannels = 1;
-            // make resizing less likely by allocating a good amount upfront
-            stereoBuffer.resize(1 << 12);
+            stereoBuffer.resize(blockSize * 2);
         }
     } else {
         std::cout << "using stereo input" << std::endl;
@@ -126,8 +124,25 @@ int InitAudio() {
 
 
 //-----------------------------------------------------------------------------------
-
 class OscListener : public osc::OscPacketListener {
+
+    std::unique_ptr<UdpListeningReceiveSocket> rxSocket;
+    std::unique_ptr<std::thread> rxThread;
+
+public:
+    void Init() {
+        rxSocket = std::make_unique<UdpListeningReceiveSocket>(
+            IpEndpointName(IpEndpointName::ANY_ADDRESS, oscRxPort),
+            this);
+
+        std::cout << "listening for input on port " << oscRxPort << "...\n";
+
+        rxThread = std::make_unique<std::thread>([&] {
+            rxSocket->RunUntilSigInt();
+        });
+        rxThread->detach();
+    }
+
 protected:
     void ProcessMessage(const osc::ReceivedMessage &msg, const IpEndpointName &remoteEndpoint) override {
         (void) remoteEndpoint; // suppress unused parameter warning
@@ -166,23 +181,42 @@ protected:
     }
 };
 
+class OscSender {
+    static constexpr int bufferSize = 1024;
+    char buffer[bufferSize];
+
+    static std::unique_ptr<UdpTransmitSocket> txSocket;
+    static std::unique_ptr<std::thread> txThread;
+
+
+public:
+    void Init() {
+        txSocket = std::make_unique<UdpTransmitSocket>(
+            IpEndpointName("localhost", oscTxPort));
+
+    }
+//
+//    void SendFloat(const char *address, float value) {
+//        osc::OutboundPacketStream p(buffer, bufferSize);
+//        p << osc::BeginMessage(address) << value << osc::EndMessage;
+//        txSocket->Send(p.Data(), p.Size());
+//    }
+//
+//    void SendInt(const char *address, int value) {
+//        osc::OutboundPacketStream p(buffer, bufferSize);
+//        p << osc::BeginMessage(address) << value << osc::EndMessage;
+//        txSocket->Send(p.Data(), p.Size());
+//    }
+//
+//    void SendBool(const char *address, bool value) {
+//        osc::OutboundPacketStream p(buffer, bufferSize);
+//        p << osc::BeginMessage(address) << value << osc::EndMessage;
+//        txSocket->Send(p.Data(), p.Size());
+//    }
+};
+
 static OscListener listener;
-
-int InitOsc() {
-
-    rxSocket = std::make_unique<UdpListeningReceiveSocket>(
-            IpEndpointName(IpEndpointName::ANY_ADDRESS, oscPort),
-            &listener);
-
-    std::cout << "listening for input on port " << oscPort << "...\n";
-
-    rxThread = std::make_unique<std::thread>([&] {
-        rxSocket->RunUntilSigInt();
-    });
-    rxThread->detach();
-
-    return 0;
-}
+//static OscSender sender;
 
 //-----------------------------------------------------------------------------------
 int main() {
@@ -190,9 +224,11 @@ int main() {
         return 1;
     }
 
-    if (InitOsc()) {
-        return 1;
-    }
+//    if (InitOsc()) {
+//        return 1;
+//    }
+
+    listener.Init();
 
     while (!shouldQuit) {
         constexpr int waitMs = 100;

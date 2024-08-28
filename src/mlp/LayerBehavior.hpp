@@ -34,6 +34,9 @@ namespace mlp {
         std::array<std::function<void()>, static_cast<size_t>(LayerActionId::NUM_ACTIONS)> actions;
         bool *loopEnabled{nullptr};
 
+        /// FIXME: these actions need to be able to spawn output events
+        /// (e.g., reporting that a reset has occured)
+        /// means the layer needs a reference to an OutputsData object
         void SetLayer(LoopLayer<numLoopChannels, bufferFrames> *layer) {
             actions[static_cast<size_t>(LayerActionId::Reset)] = [layer]() { layer->Reset(); };
             actions[static_cast<size_t>(LayerActionId::Restart)] = [layer]() { layer->Restart(); };

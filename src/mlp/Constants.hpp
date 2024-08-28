@@ -15,5 +15,5 @@ namespace mlp
     static constexpr frame_t bufferFrames = 1 << 25;
     static constexpr int numLoopChannels = 2;
     static constexpr int numLoopLayers = 4;
-
+    static constexpr unsigned int framesPerOutput = 1 << 10;
 }

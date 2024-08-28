@@ -6,6 +6,8 @@
 
 #include "LayerBehavior.hpp"
 #include "LoopLayer.hpp"
+
+#include "Outputs.hpp"
 #include "Types.hpp"
 
 namespace mlp {
@@ -25,23 +27,25 @@ namespace mlp {
         std::array<LayerBehavior, numLayers> behavior;
         std::array<LayerInterface, numLayers> layerInterface;
 
-        //--------------
-        // currently-selected layer index
-        unsigned int currentLayer{0};
-        // the "innermost" layer doesn't perform actions on the layer "below" it
-        // when all layers are stopped, the next activated layer becomes the innermost
-        unsigned int innerLayer{0};
-
         // non-interleaved stereo buffers
         typedef std::array<float, bufferFrames * numChannels> LayerBuffer;
         std::array<LayerBuffer, numLayers> buffer{};
 
+        OutputsData *outputs;
+
+        //--------------
+        // currently-selected layer index
+        unsigned int currentLayer{0};
+        // when all layers are stopped, the next activated layer becomes the innermost
+        unsigned int innerLayer{0};
+
+
+        // temp flag
         bool shouldAdvanceLayerOnNextTap{false};
 
         /// global interface flags (not governed by layer behaviors)
         bool clearLayerOnStop{true};
         bool clearLayerOnSet{true};
-
         bool advanceLayerOnLoopOpen{true};
 
     private:
@@ -55,7 +59,7 @@ namespace mlp {
         Kernel() {
             /// initialize buffers
             /// FIXME: not the most efficient design, but it is simple:
-            /// we are giving each layer its own full-sized buffer, which its unlikely to use
+            /// we are giving each layer its own full-sized buffer, which it's unlikely to use completely
             /// we could use a single large buffer, and set a pointer into it for each layer when a loop is opened
             /// the difficulty there becomes how to reclaim segmented buffer space,
             /// when layers can be stopped/cleared in any order
@@ -89,13 +93,36 @@ namespace mlp {
                 auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
                     behavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
+                    SetOutputLayerFlag(i, LayerOutputFlagId::Wrapped);
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
                     behavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, IsOuterLayer(i));
+                    SetOutputLayerFlag(i, LayerOutputFlagId::Triggered);
+                }
+                if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
+                    SetOutputLayerFlag(i, LayerOutputFlagId::Silent);
                 }
             }
             *dst++ = y[0];
             *dst++ = y[1];
+        }
+
+        void SetOutputLayerFlag(unsigned int layerIndex, LayerOutputFlagId flag) {
+            outputs->layers[layerIndex].flags.Set(flag);
+        }
+
+        void InitializeOutputs(OutputsData *aOutputs) {
+            this->outputs = aOutputs;
+            *(this->outputs) = defaultOutputsData;
+            for (unsigned int i = 0; i < numLayers; ++i) {
+                outputs->layers[i].positionRange[0] = layer[i].GetCurrentFrame();
+            }
+        }
+
+        void FinalizeOutputs() {
+            for (unsigned int i = 0; i < numLayers; ++i) {
+                outputs->layers[i].positionRange[1] = layer[i].GetCurrentFrame();
+            }
         }
 
         //------------------------------------------------
@@ -109,31 +136,31 @@ namespace mlp {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::LOOPING:
                     if (advanceLayerOnLoopOpen && shouldAdvanceLayerOnNextTap) {
-                        std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
+                        //std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
                         if (++currentLayer >= numLayers) {
-                            std::cout << "SetLoopTap(): reached end of layers; wrapping to first" << std::endl;
                             currentLayer = 0;
-                        } else {
-                            std::cout << "SetLoopTap(): current layer now = " << currentLayer << std::endl;
                         }
+                        SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
                         shouldAdvanceLayerOnNextTap = false;
                     }
                     if (currentLayer >= numLayers) {
                         return;
                     }
 
-                    std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
+                    //std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop, currentLayer == innerLayer,
                                                             IsOuterLayer(currentLayer));
                     if (clearLayerOnSet) {
-                        layer[currentLayer].preserveLevel = 0.f;
+                        //layer[currentLayer].preserveLevel = 0.f;
+                        layer[currentLayer].clearSwitch.Open();
+                        SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
                     }
                     shouldAdvanceLayerOnNextTap = false;
                     break;
 
                 case LoopLayerState::SETTING:
-                    std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
+                    // std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
                     behavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
                                                             IsOuterLayer(currentLayer));
@@ -146,7 +173,6 @@ namespace mlp {
             if (currentLayer >= 0 && currentLayer < numLayers)
                 layer[currentLayer].ToggleWrite();
         }
-
 
         void ToggleMute() {
             if (currentLayer >= 0 && currentLayer < numLayers)
@@ -185,48 +211,42 @@ namespace mlp {
             // std::cout << "(stopping current layer)" << std::endl;
             layer[currentLayer].Stop();
             if (clearLayerOnStop) {
-                layer[currentLayer].preserveLevel = 0.f;
+                //layer[currentLayer].preserveLevel = 0.f;
+                layer[currentLayer].clearSwitch.Open();
+                SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
             }
-
             bool anyLayersActive = false;
             for (auto &theLayer: layer) {
                 anyLayersActive |= theLayer.GetIsActive();
             }
             if (!anyLayersActive) {
-                std::cout << "(resetting inner layer)" << std::endl;
+                std::cout << "(selected is inner layer)" << std::endl;
                 innerLayer = currentLayer;
+                SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Inner);
             } else {
                 std::cout << "(decrementing selection)" << std::endl;
                 if (--currentLayer < 0) {
                     currentLayer = numLayers - 1;
                 }
             }
+            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
             std::cout << "stopped layer; current = " << currentLayer << std::endl;
             // just making sure...
             shouldAdvanceLayerOnNextTap = false;
         }
 
         void SetPreserveLevel(float level, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].preserveLevel = level;
         }
 
         void SetRecordLevel(float level, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].recordLevel = level;
         }
 
         void SetPlaybackLevel(float level, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].playbackLevel = level;
         }
 
@@ -235,10 +255,7 @@ namespace mlp {
         }
 
         void SetLoopStartFrame(frame_t frame, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].loopStartFrame = frame;
             if (layer[layerIndex].resetFrame < layer[layerIndex].loopStartFrame) {
                 layer[layerIndex].resetFrame = layer[layerIndex].loopStartFrame;
@@ -246,10 +263,7 @@ namespace mlp {
         }
 
         void SetLoopEndFrame(frame_t frame, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             std::cout << "SetLoopEndFrame(): layer = " << layerIndex << "; frame = " << frame << std::endl;
             layer[layerIndex].loopEndFrame = frame;
             if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
@@ -259,30 +273,20 @@ namespace mlp {
         }
 
         void SetLoopResetFrame(frame_t frame, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].resetFrame = frame;
             if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
                 layer[layerIndex].resetFrame = layer[layerIndex].loopEndFrame;
             }
-
         }
 
         void SetFadeIncrement(float increment, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].SetFadeIncrement(increment);
         }
 
         void SetLoopEnabled(bool enabled, int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].loopEnabled = enabled;
         }
 
@@ -299,10 +303,7 @@ namespace mlp {
         }
 
         void ResetLayer(int aLayerIndex = -1) {
-            unsigned int layerIndex;
-            if (aLayerIndex < 0) {
-                layerIndex = currentLayer;
-            } else { layerIndex = (unsigned int) aLayerIndex; }
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             if (layerIndex >= 0 && layerIndex < numLayers) {
                 layer[layerIndex].Reset();
             }
