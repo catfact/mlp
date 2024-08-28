@@ -7,18 +7,37 @@ namespace mlp {
 
     // non-audio output values, calculated on each block from the audio thread
     enum class LayerOutputFlagId {
-        Selected,
+        Selected=0,
         Inner,
         Wrapped,
+        Looped,
         Triggered,
         Paused,
         Resumed,
         Reset,
         Silent,
         Active,
+        Stopped,
         Clearing,
         Count
     };
+
+    static const char LayerOutputFlagLabel[32][static_cast<unsigned long>(LayerOutputFlagId::Count)] = {
+        "Selected",
+        "Inner",
+        "Wrapped",
+        "Looped",
+        "Triggered",
+        "Paused",
+        "Resumed",
+        "Reset",
+        "Silent",
+        "Active",
+        "Stopped",
+        "Clearing",
+    };
+
+
 
     typedef BitSet<LayerOutputFlagId, LayerOutputFlagId::Count> LayerOutputFlags;
 

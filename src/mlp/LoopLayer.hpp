@@ -5,6 +5,7 @@
 
 #include "LayerBehavior.hpp"
 
+#include "Outputs.hpp"
 #include "Phasor.hpp"
 #include "SmoothSwitch.hpp"
 #include "Types.hpp"
@@ -57,6 +58,8 @@ namespace mlp {
         /// behavior flags
         bool loopEnabled{true};
 
+        LayerOutputs *outputs;
+
         //------------------------------------------------------------------------------------------------------
 
         void OpenLoop(frame_t startFrame = 0) {
@@ -85,7 +88,7 @@ namespace mlp {
             loopEndFrame = newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
             newPhasor.Reset(loopStartFrame);
-            std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
+            //std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
         void SetWriteActive(bool active) {
@@ -229,7 +232,7 @@ namespace mlp {
                     SetWriteActive(false);
                     state = LoopLayerState::STOPPED;
                     stopPending = false;
-                    std::cout << "[LoopLayer] stopped loop" << std::endl;
+                    outputs->flags.Set(LayerOutputFlagId::Stopped);
                 }
             }
 
@@ -238,6 +241,7 @@ namespace mlp {
                     lastPhasorIndex = currentPhasorIndex;
                     currentPhasorIndex ^= 1;
                     phasor[currentPhasorIndex].Reset(loopStartFrame);
+                    if (outputs) outputs->flags.Set(LayerOutputFlagId::Looped);
                 }
             }
 

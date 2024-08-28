@@ -24,7 +24,7 @@ namespace mlp {
     private:
         typedef LoopLayer<numChannels, bufferFrames> Layer;
         std::array<Layer, numLayers> layer;
-        std::array<LayerBehavior, numLayers> behavior;
+        std::array<LayerBehavior, numLayers> layerBehavior;
         std::array<LayerInterface, numLayers> layerInterface;
 
         // non-interleaved stereo buffers
@@ -33,7 +33,9 @@ namespace mlp {
 
         OutputsData *outputs;
 
-        //--------------
+        //----------------------------------------
+        //--- other runtime state
+
         // currently-selected layer index
         unsigned int currentLayer{0};
         // when all layers are stopped, the next activated layer becomes the innermost
@@ -58,7 +60,7 @@ namespace mlp {
 
         Kernel() {
             /// initialize buffers
-            /// FIXME: not the most efficient design, but it is simple:
+            /// NB: not the most efficient design, but it is simple:
             /// we are giving each layer its own full-sized buffer, which it's unlikely to use completely
             /// we could use a single large buffer, and set a pointer into it for each layer when a loop is opened
             /// the difficulty there becomes how to reclaim segmented buffer space,
@@ -73,13 +75,13 @@ namespace mlp {
             }
             /// initialize behaviors
             for (unsigned int i = 0; i < numLayers; ++i) {
-                behavior[i].thisLayer = &layerInterface[i];
-                behavior[i].layerBelow = &layerInterface[(i - 1) % numLayers];
-                behavior[i].layerAbove = &layerInterface[(i + 2) % numLayers];
+                layerBehavior[i].thisLayer = &layerInterface[i];
+                layerBehavior[i].layerBelow = &layerInterface[(i - 1) % numLayers];
+                layerBehavior[i].layerAbove = &layerInterface[(i + 2) % numLayers];
             }
             /// initialize modes
             for (unsigned int i = 0; i < numLayers; ++i) {
-                SetLayerBehaviorMode(behavior[i], LayerBehaviorModeId::MULTIPLY_UNQUANTIZED);
+                SetLayerBehaviorMode(layerBehavior[i], LayerBehaviorModeId::MULTIPLY_UNQUANTIZED);
             }
         }
 
@@ -92,11 +94,11 @@ namespace mlp {
             for (unsigned int i = 0; i < numLayers; ++i) {
                 auto phaseUpdateResult = layer[i].ProcessFrame(x, y);
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::WRAPPED_LOOP)) {
-                    behavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
+                    layerBehavior[i].ProcessCondition(LayerConditionId::Wrap, i == innerLayer, IsOuterLayer(i));
                     SetOutputLayerFlag(i, LayerOutputFlagId::Wrapped);
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::CROSSED_TRIGGER)) {
-                    behavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, IsOuterLayer(i));
+                    layerBehavior[i].ProcessCondition(LayerConditionId::Trigger, i == innerLayer, IsOuterLayer(i));
                     SetOutputLayerFlag(i, LayerOutputFlagId::Triggered);
                 }
                 if (phaseUpdateResult.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
@@ -117,10 +119,14 @@ namespace mlp {
             for (unsigned int i = 0; i < numLayers; ++i) {
                 outputs->layers[i].positionRange[0] = layer[i].GetCurrentFrame();
                 layerInterface[i].outputs = &outputs->layers[i];
+                layer[i].outputs = &outputs->layers[i];
             }
         }
 
         void FinalizeOutputs() {
+            if (outputs == nullptr) {
+                return;
+            }
             for (unsigned int i = 0; i < numLayers; ++i) {
                 outputs->layers[i].positionRange[1] = layer[i].GetCurrentFrame();
             }
@@ -150,8 +156,8 @@ namespace mlp {
 
                     //std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
-                    behavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop, currentLayer == innerLayer,
-                                                            IsOuterLayer(currentLayer));
+                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop, currentLayer == innerLayer,
+                                                                 IsOuterLayer(currentLayer));
                     if (clearLayerOnSet) {
                         //layer[currentLayer].preserveLevel = 0.f;
                         layer[currentLayer].clearSwitch.Open();
@@ -163,8 +169,8 @@ namespace mlp {
                 case LoopLayerState::SETTING:
                     // std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop();
-                    behavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
-                                                            IsOuterLayer(currentLayer));
+                    layerBehavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop, currentLayer == innerLayer,
+                                                                 IsOuterLayer(currentLayer));
                     shouldAdvanceLayerOnNextTap = true;
                     break;
             }

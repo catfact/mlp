@@ -185,16 +185,19 @@ class OscSender {
     static constexpr int bufferSize = 1024;
     char buffer[bufferSize];
 
-    static std::unique_ptr<UdpTransmitSocket> txSocket;
-    static std::unique_ptr<std::thread> txThread;
+    std::unique_ptr<UdpTransmitSocket> txSocket;
+    std::unique_ptr<std::thread> txThread;
 
     //std::binary_semaphore dataReady{0};
 
 public:
-    void Init() {
-        txSocket = std::make_unique<UdpTransmitSocket>(
-            IpEndpointName("localhost", oscTxPort));
 
+    OscSender() {
+        txSocket = std::make_unique<UdpTransmitSocket>(
+                IpEndpointName("localhost", oscTxPort));
+    }
+
+    void Init() {
         txThread = std::make_unique<std::thread>([&] {
             while (!shouldQuit) {
 
@@ -202,12 +205,21 @@ public:
                 LayerFlagsMessageData flagsData;
                 while (layerFlagsQ.try_dequeue(flagsData)) {
                     /// TODO: send the flags data... (as a blob? bool array? separate messages?)
+                    std::cout << "layer " << flagsData.layer << "flags: ";
+                    for (int i = 0; i < static_cast<int>(LayerOutputFlagId::Count); ++i) {
+                        if (flagsData.flags.Test(static_cast<LayerOutputFlagId>(i))) {
+                            std::cout << LayerOutputFlagLabel[i] << ", ";
+                        }
+                    }
+                    std::cout << std::endl;
                 }
 
                 auto &layerPositionQ = m.GetLayerPositionQ();
                 LayerPositionMessageData posData;
                 while (layerPositionQ.try_dequeue(posData)) {
                     // TODO: send the position data...
+                    std::cout << "layer position: " << posData.layer << "; "
+                              << posData.positionRange[0] << " - " << posData.positionRange[1] << std::endl;
                 }
 
             }
@@ -237,7 +249,7 @@ public:
 };
 
 static OscListener listener;
-//static OscSender sender;
+static OscSender sender;
 
 //-----------------------------------------------------------------------------------
 int main() {
@@ -250,6 +262,7 @@ int main() {
 //    }
 
     listener.Init();
+    sender.Init();
 
     while (!shouldQuit) {
         constexpr int waitMs = 100;
