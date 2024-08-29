@@ -67,8 +67,8 @@ juce_add_gui_app(mlp-plug-gui
 
 target_sources(mlp-plug-gui
         PRIVATE
-        gui-main/Main.cpp
-        gui-main/MainComponent.cpp)
+        gui-osc/Main.cpp
+        gui-osc/MainComponent.cpp)
 
 target_include_directories(mlp-plug-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_include_directories(mlp-plug-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)

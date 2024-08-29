@@ -4,6 +4,10 @@
 // keeping this separate from the Editor class, as it may be used in non-plugin contexts
 // (for example, in a OSC interface demonstration)
 
+// in design-pattern terms this is a View class,
+// with its inputs and outputs abstracted separately
+// (output ==Model and input == ViewModel, if you like)
+
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -11,8 +15,28 @@
 #include "Mlp.hpp"
 #include "mlp/Constants.hpp"
 #include "MlpLookAndFeel.hpp"
+#include "MlpGuiIo.hpp"
 
 class MlpGui : public juce::Component {
+
+
+
+    //==============================================================================
+    //=== I/O
+
+    MlpGuiInput* input = nullptr;
+    MlpGuiOutput* output = nullptr;
+
+    void InitIo(MlpGuiInput* aInput, MlpGuiOutput* aOutput) {
+        input = aInput;
+        output = aOutput;
+        input->layerOutputFlagCallback = [this](unsigned int layerIndex, mlp::LayerOutputFlagId id) {
+            std::cout << "MlpGui::layerOutputFlagCallback; layer = " << layerIndex << ", flag = " << (int) id << std::endl;
+        };
+    }
+
+    //==============================================================================
+    //=== GUI components
 
     static constexpr int buttonHeight = 64;
     static constexpr int tapButtonWidth = buttonHeight * 3 / 2;
@@ -281,5 +305,12 @@ public:
         grid.performLayout(getLocalBounds());
 
     }
+//    void SetToggleState(int layerIndex, int toggleIndex, bool state) {
+//        layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[toggleIndex]->SetState(state);
+//    }
+//
+//    void SetParameterValue(int layerIndex, int paramIndex, float value) {
+//        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[paramIndex]->SetValue(value);
+//    }
 
 };
