@@ -10,30 +10,28 @@
 
 #include "Mlp.hpp"
 #include "mlp/Constants.hpp"
+#include "MlpLookAndFeel.hpp"
 
 class MlpGui : public juce::Component {
 
-
-    static constexpr int buttonHeight = 48;
-    static constexpr int tapButtonWidth = buttonHeight;
-    static constexpr int toggleButtonWidth = buttonHeight * 3 / 2;
-    static constexpr int sliderHeight = buttonHeight / 2;
-    static constexpr int sliderMinWidth = 128;
+//    static constexpr int buttonHeight = 48;
+//    static constexpr int tapButtonWidth = buttonHeight;
+//    static constexpr int toggleButtonWidth = buttonHeight * 3 / 2;
+//    static constexpr int sliderHeight = buttonHeight / 2;
+//    static constexpr int sliderMinWidth = 128;
 
     //----------------------------------------------------------------------------------
     //--- widget classes
 
-    class LayerTapControl : public juce::TextButton {
-        int layerIndex;
+    class TapControl : public juce::TextButton {
         int tapIndex;
     public:
-        LayerTapControl(int aLayerIndex, int aTapIndex, const std::string &label)
+        TapControl(int aTapIndex, const std::string &label)
                 : juce::TextButton(label),
-                  layerIndex(aLayerIndex),
                   tapIndex(aTapIndex) {
             setButtonText(label);
             onClick = [this] {
-                std::cout << "LayerTapControl::onClick; layer = " << layerIndex << ", tap = " << tapIndex << std::endl;
+                std::cout << "TapControl::onClick; tap = " << tapIndex << std::endl;
             };
         }
     };
@@ -76,15 +74,42 @@ class MlpGui : public juce::Component {
     };
 
 
-    class LayerRadioButton : public juce::ToggleButton {
+    struct LayerRadioButton : public juce::ToggleButton {
         /// TODO
+    };
+
+    struct TapControlGroup : public juce::GroupComponent {
+        std::vector<std::unique_ptr<TapControl>> controls;
+        static constexpr size_t numTaps = (size_t) mlp::Mlp::TapId::Count;
+
+        explicit TapControlGroup() {
+            for (size_t i = 0; i < numTaps; ++i) {
+                controls.push_back(std::make_unique<TapControl>(i, mlp::Mlp::TapIdLabel[i]));
+                addAndMakeVisible(controls.back().get());
+            }
+        }
+
+        void resized() override {
+            juce::Grid grid;
+            grid.templateRows = {
+                    juce::Grid::TrackInfo(juce::Grid::Fr(1)),
+            };
+            grid.templateColumns = {};
+            for (unsigned int i = 0; i < numTaps; ++i) {
+                grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Fr(1)));
+            };
+            for (auto &control: controls) {
+                grid.items.add(juce::GridItem(*control));
+            }
+            grid.performLayout(getLocalBounds());
+        }
     };
 
     //----------------------------------------------------------------------------------
     struct LayerControlGroup : public juce::GroupComponent {
 
-        template <typename ControlType, unsigned int numWidgets>
-        struct LayerWidgetControlGroup: public juce::GroupComponent {
+        template<typename ControlType, unsigned int numWidgets>
+        struct LayerWidgetControlGroup : public juce::GroupComponent {
 
             std::vector<std::unique_ptr<ControlType>> controls;
 
@@ -94,12 +119,12 @@ class MlpGui : public juce::Component {
 
                 using Track = juce::Grid::TrackInfo;
                 using Fr = juce::Grid::Fr;
-                grid.templateRows    = {
-                        Track (Fr (1)),
+                grid.templateRows = {
+                        Track(Fr(1)),
                 };
                 grid.templateColumns = {};
-                for (unsigned int i=0; i<numWidgets; ++i) {
-                    grid.templateColumns.add(Track (Fr (1)));
+                for (unsigned int i = 0; i < numWidgets; ++i) {
+                    grid.templateColumns.add(Track(Fr(1)));
                 };
                 for (auto &control: controls) {
                     grid.items.add(juce::GridItem(*control));
@@ -118,35 +143,35 @@ class MlpGui : public juce::Component {
 //            }
 //        };
 
-        struct LayerToggleControlGroup : public LayerWidgetControlGroup<LayerToggleControl, (size_t)mlp::Mlp::BoolParamId::Count> {
+        struct LayerToggleControlGroup
+                : public LayerWidgetControlGroup<LayerToggleControl, (size_t) mlp::Mlp::BoolParamId::Count> {
             explicit LayerToggleControlGroup(int layerIndex) {
-                for (int i=0; i<(int)mlp::Mlp::BoolParamId::Count; ++i) {
-                    controls.push_back(std::make_unique<LayerToggleControl>(layerIndex, i, mlp::Mlp::IndexBoolParamIdLabel[i]));
+                for (int i = 0; i < (int) mlp::Mlp::BoolParamId::Count; ++i) {
+                    controls.push_back(
+                            std::make_unique<LayerToggleControl>(layerIndex, i, mlp::Mlp::IndexBoolParamIdLabel[i]));
                     addAndMakeVisible(controls.back().get());
                 }
             }
         };
 
-        struct LayerParameterControlGroup : public LayerWidgetControlGroup<LayerParameterControl, (size_t)mlp::Mlp::FloatParamId::Count> {
+        struct LayerParameterControlGroup
+                : public LayerWidgetControlGroup<LayerParameterControl, (size_t) mlp::Mlp::FloatParamId::Count> {
             explicit LayerParameterControlGroup(int layerIndex) {
-                for (int i=0; i<(int)mlp::Mlp::FloatParamId::Count; ++i) {
-                    controls.push_back(std::make_unique<LayerParameterControl>(layerIndex, i, mlp::Mlp::IndexFloatParamIdLabel[i]));
+                for (int i = 0; i < (int) mlp::Mlp::FloatParamId::Count; ++i) {
+                    controls.push_back(std::make_unique<LayerParameterControl>(layerIndex, i,
+                                                                               mlp::Mlp::IndexFloatParamIdLabel[i]));
                     addAndMakeVisible(controls.back().get());
                 }
             }
         };
 
-        std::unique_ptr<LayerTapControlGroup> tapControlGroup;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
         std::unique_ptr<LayerParameterControlGroup> parameterControlGroup;
 
     public:
         explicit LayerControlGroup(int layerIndex) {
-            tapControlGroup = std::make_unique<LayerTapControlGroup>(layerIndex);
             toggleControlGroup = std::make_unique<LayerToggleControlGroup>(layerIndex);
             parameterControlGroup = std::make_unique<LayerParameterControlGroup>(layerIndex);
-
-            addAndMakeVisible(tapControlGroup.get());
             addAndMakeVisible(toggleControlGroup.get());
             addAndMakeVisible(parameterControlGroup.get());
 
@@ -158,15 +183,15 @@ class MlpGui : public juce::Component {
             using Track = juce::Grid::TrackInfo;
             using Fr = juce::Grid::Fr;
 
-            grid.templateRows    = {
-                    Track (Fr (1)),
+            grid.templateRows = {
+                    Track(Fr(1)),
             };
             grid.templateColumns = {
-                    Track (Fr (1)),
-                    Track (Fr (1)),
-                    Track (Fr (1)),
+                    Track(Fr(1)),
+                    Track(Fr(1)),
+                    Track(Fr(1)),
             };
-            grid.items.add(juce::GridItem(*tapControlGroup));
+            //grid.items.add(juce::GridItem(*tapControlGroup));
             grid.items.add(juce::GridItem(*toggleControlGroup));
             grid.items.add(juce::GridItem(*parameterControlGroup));
 
@@ -176,14 +201,38 @@ class MlpGui : public juce::Component {
 
     //----------------------------------------------------------------------------------
 private:
-    std::array<std::unique_ptr<LayerControlGroup>, mlp::numLoopLayers> layerControlGroups;
+    MlpLookAndFeel lookAndFeel;
+    std::unique_ptr<TapControlGroup> tapControlGroup;
 
-public:
-    MlpGui() {
+struct LayerControlStack: public juce::GroupComponent {
+    std::array<std::unique_ptr<LayerControlGroup>, mlp::numLoopLayers> layerControlGroups;
+    LayerControlStack() {
         for (unsigned int i = 0; i < mlp::numLoopLayers; ++i) {
             layerControlGroups[i] = std::make_unique<LayerControlGroup>(i);
             addAndMakeVisible(layerControlGroups[i].get());
         }
+    }
+    void resized() override {
+        juce::Grid grid;
+        for (auto &layer: layerControlGroups) {
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Fr(1)));
+        }
+        grid.templateRows = { juce::Grid::TrackInfo(juce::Grid::Fr(1)) };
+        for (auto &layer: layerControlGroups) {
+            grid.items.add(juce::GridItem(*layer));
+        }
+        grid.performLayout(getLocalBounds());
+    }
+};
+
+std::unique_ptr<LayerControlStack> layerControlStack;
+
+public:
+    MlpGui() {
+        tapControlGroup = std::make_unique<TapControlGroup>();
+        layerControlStack = std::make_unique<LayerControlStack>();
+        addAndMakeVisible(tapControlGroup.get());
+        addAndMakeVisible(layerControlStack.get());
     }
 
     void resized() override {
@@ -191,20 +240,21 @@ public:
 
         using Track = juce::Grid::TrackInfo;
         using Fr = juce::Grid::Fr;
+        using Px = juce::Grid::Px;
 
-        grid.templateRows    = {
-                Track (Fr (1)),
-                Track (Fr (1)),
-                Track (Fr (1)),
-                Track (Fr (1)),
+        grid.templateRows = {
+                Track(Px(64)),
+                Track(Fr(1)),
         };
         grid.templateColumns = {
-                Track (Fr (1))
+                Track(Fr(1))
         };
-        for (auto &layer: layerControlGroups) {
-            grid.items.add(juce::GridItem(*layer));
-        }
+
+        grid.items.add(juce::GridItem(*tapControlGroup));
+        grid.items.add(juce::GridItem(*layerControlStack));
+
         grid.performLayout(getLocalBounds());
 
     }
+
 };
