@@ -8,7 +8,7 @@ MainComponent::MainComponent() {
 }
 
 void MainComponent::paint(juce::Graphics &g) {
-    g.fillAll(juce::Colours::whitesmoke);
+    g.fillAll(juce::Colours::lightsteelblue);
 }
 
 void MainComponent::resized()
