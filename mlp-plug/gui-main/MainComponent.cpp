@@ -4,7 +4,7 @@
 MainComponent::MainComponent() : myButt("butt") {
     addAndMakeVisible(mlpGui);
     //addAndMakeVisible(myButt);
-    setSize (600, 400);
+    setSize (1200, 800);
 }
 
 //==============================================================================

@@ -14,20 +14,20 @@ namespace mlp {
     public:
 
         enum class TapId : int {
-            SetLoop,
-            ToggleOverdub,
-            ToggleMute,
-            StopLoop,
+            Set,
+//            ToggleOverdub,
+//            ToggleMute,
+            Stop,
             Reset,
             Count
         };
 
         static constexpr char TapIdLabel[static_cast<int>(TapId::Count)][16] = {
-                "SetLoop",
-                "ToggleOverdub",
-                "ToggleMute",
-                "StopLoop",
-                "Reset"
+                "SET",
+//                "TOGGLEOVERDUB",
+//                "TOGGLEMUTE",
+                "STOP",
+                "RESET"
         };
 
         enum class FloatParamId : int {
@@ -40,11 +40,11 @@ namespace mlp {
         };
 
         static constexpr char FloatParamIdLabel[static_cast<int>(FloatParamId::Count)][16] = {
-                "PreserveLevel",
-                "RecordLevel",
-                "PlaybackLevel",
-                "FadeTime",
-                "SwitchTime"
+                "PRESERVE",
+                "RECORD",
+                "PLAYBACK",
+                "FADE",
+                "SWITCH"
         };
 
         enum class IndexFloatParamId : int {
@@ -57,11 +57,11 @@ namespace mlp {
         };
 
         static constexpr char IndexFloatParamIdLabel[static_cast<int>(IndexFloatParamId::Count)][32] = {
-                "LayerPreserveLevel",
-                "LayerRecordLevel",
-                "LayerPlaybackLevel",
-                "LayerFadeTime",
-                "LayerSwitchTime"
+                "PRESERVE",
+                "RECORD",
+                "PLAYBACK",
+                "FADE",
+                "SWITCH"
         };
 
         struct IndexFloatParamValue {
@@ -79,11 +79,11 @@ namespace mlp {
         };
 
         static constexpr char IndexParamIdLabel[static_cast<int>(IndexParamId::Count)][16] = {
-                "SelectLayer",
-                "ResetLayer",
-                "LoopStartFrame",
-                "LoopEndFrame",
-                "LoopResetFrame"
+                "SELECT",
+                "RESET",
+                "STARTPOS=",
+                "ENDPOS",
+                "RESETPOS"
         };
 
         enum class IndexIndexParamId : int {
@@ -94,9 +94,9 @@ namespace mlp {
         };
 
         static constexpr char IndexIndexParamIdLabel[static_cast<int>(IndexIndexParamId::Count)][32] = {
-                "LayerLoopStartFrame",
-                "LayerLoopEndFrame",
-                "LayerLoopResetFrame"
+                "STARTPOS",
+                "ENDPOS",
+                "RESETPOS"
         };
 
         struct IndexIndexParamValue {
@@ -113,10 +113,10 @@ namespace mlp {
         };
 
         static constexpr char BoolParamIdLabel[static_cast<int>(BoolParamId::Count)][16] = {
-                "WriteEnabled",
-                "ClearEnabled",
-                "ReadEnabled",
-                "LoopEnabled"
+                "WRITE",
+                "CLEAR",
+                "READ",
+                "LOOP"
         };
 
         enum class IndexBoolParamId : int {
@@ -128,10 +128,10 @@ namespace mlp {
         };
 
         static constexpr char IndexBoolParamIdLabel[static_cast<int>(IndexBoolParamId::Count)][32] = {
-                "LayerWriteEnabled",
-                "LayerClearEnabled",
-                "LayerReadEnabled",
-                "LayerLoopEnabled"
+                "WRITE",
+                "CLEAR",
+                "READ",
+                "LOOP"
         };
 
         struct IndexBoolParamValue {
@@ -214,16 +214,16 @@ namespace mlp {
             TapId tapId;
             while (paramChangeQ.tapQ.try_dequeue(tapId)) {
                 switch (tapId) {
-                    case TapId::SetLoop:
+                    case TapId::Set:
                         kernel.SetLoopTap();
                         break;
-                    case TapId::ToggleOverdub:
-                        kernel.ToggleOverdub();
-                        break;
-                    case TapId::ToggleMute:
-                        kernel.ToggleMute();
-                        break;
-                    case TapId::StopLoop:
+//                    case TapId::ToggleOverdub:
+//                        kernel.ToggleOverdub();
+//                        break;
+//                    case TapId::ToggleMute:
+//                        kernel.ToggleMute();
+//                        break;
+                    case TapId::Stop:
                         kernel.StopLoop();
                         break;
                     case TapId::Reset:
