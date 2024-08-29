@@ -17,7 +17,7 @@ namespace mlp {
         Resumed,
         Reset,
         Silent,
-        Active,
+        // Active,
         Stopped,
         Clearing,
         Opened,
@@ -25,7 +25,7 @@ namespace mlp {
         Count
     };
 
-    static const char LayerOutputFlagLabel[32][static_cast<unsigned long>(LayerOutputFlagId::Count)] = {
+    static const char LayerOutputFlagLabel[static_cast<unsigned long>(LayerOutputFlagId::Count)][16] = {
         "Selected",
         "Inner",
         "Outer",
@@ -36,7 +36,7 @@ namespace mlp {
         "Resumed",
         "Reset",
         "Silent",
-        "Active",
+        // "Active",
         "Stopped",
         "Clearing",
         "Opened",

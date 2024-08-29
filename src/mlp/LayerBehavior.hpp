@@ -14,7 +14,7 @@ namespace mlp {
 
     enum class LayerActionId {
         Reset,
-        Restart,
+        // Restart,
         Pause,
         Resume,
         StoreTrigger,
@@ -43,7 +43,7 @@ namespace mlp {
 
         void SetLayer(LoopLayer<numLoopChannels, bufferFrames> *layer) {
             actions[static_cast<size_t>(LayerActionId::Reset)] = [layer]() { layer->Reset(); };
-            actions[static_cast<size_t>(LayerActionId::Restart)] = [layer]() { layer->Restart(); };
+            // actions[static_cast<size_t>(LayerActionId::Restart)] = [layer]() { layer->Restart(); };
             actions[static_cast<size_t>(LayerActionId::Pause)] = [layer]() { layer->Pause(); };
             actions[static_cast<size_t>(LayerActionId::Resume)] = [layer]() { layer->Resume(); };
             actions[static_cast<size_t>(LayerActionId::StoreTrigger)] = [layer]() { layer->StoreTrigger(); };
@@ -70,6 +70,10 @@ namespace mlp {
                     case LayerActionId::StoreReset:
                         outputs->flags.Set(LayerOutputFlagId::Reset);
                         break;
+//                    case LayerActionId::Restart:
+//                        //outputs->flags.Set(LayerOutputFlagId::Restarted);
+//                        break;
+                    case LayerActionId::NUM_ACTIONS:
                     default:
                         break;
                 }
@@ -105,7 +109,7 @@ namespace mlp {
             }
         }
 
-        void ProcessCondition(LayerConditionId id, bool aIsInnerLayer, bool aIsOuterLayer) {
+        void ProcessCondition(LayerConditionId id) {
             int &counter = thisLayer->conditionCounter[static_cast<size_t>(id)];
             if (counter == 0) {
                 // no actions taken if the counter has run down

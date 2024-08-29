@@ -3,6 +3,9 @@
 #include "readerwriterqueue/readerwriterqueue.h"
 #include "mlp/Kernel.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+
 namespace mlp {
 
     // main API for the audio effect
@@ -16,6 +19,15 @@ namespace mlp {
             ToggleMute,
             StopLoop,
             Reset,
+            Count
+        };
+
+        static constexpr char TapIdLabel[static_cast<int>(TapId::Count)][16] = {
+                "SetLoop",
+                "ToggleOverdub",
+                "ToggleMute",
+                "StopLoop",
+                "Reset"
         };
 
         enum class FloatParamId : int {
@@ -23,7 +35,16 @@ namespace mlp {
             RecordLevel,
             PlaybackLevel,
             FadeTime,
-            SwitchTime
+            SwitchTime,
+            Count
+        };
+
+        static constexpr char FloatParamIdLabel[static_cast<int>(FloatParamId::Count)][16] = {
+                "PreserveLevel",
+                "RecordLevel",
+                "PlaybackLevel",
+                "FadeTime",
+                "SwitchTime"
         };
 
         enum class IndexFloatParamId : int {
@@ -31,7 +52,16 @@ namespace mlp {
             LayerRecordLevel,
             LayerPlaybackLevel,
             LayerFadeTime,
-            LayerSwitchTime
+            LayerSwitchTime,
+            Count
+        };
+
+        static constexpr char IndexFloatParamIdLabel[static_cast<int>(IndexFloatParamId::Count)][32] = {
+                "LayerPreserveLevel",
+                "LayerRecordLevel",
+                "LayerPlaybackLevel",
+                "LayerFadeTime",
+                "LayerSwitchTime"
         };
 
         struct IndexFloatParamValue {
@@ -45,12 +75,28 @@ namespace mlp {
             LoopStartFrame,
             LoopEndFrame,
             LoopResetFrame,
+            Count
+        };
+
+        static constexpr char IndexParamIdLabel[static_cast<int>(IndexParamId::Count)][16] = {
+                "SelectLayer",
+                "ResetLayer",
+                "LoopStartFrame",
+                "LoopEndFrame",
+                "LoopResetFrame"
         };
 
         enum class IndexIndexParamId : int {
             LayerLoopStartFrame,
             LayerLoopEndFrame,
             LayerLoopResetFrame,
+            Count
+        };
+
+        static constexpr char IndexIndexParamIdLabel[static_cast<int>(IndexIndexParamId::Count)][32] = {
+                "LayerLoopStartFrame",
+                "LayerLoopEndFrame",
+                "LayerLoopResetFrame"
         };
 
         struct IndexIndexParamValue {
@@ -63,6 +109,14 @@ namespace mlp {
             ClearEnabled,
             ReadEnabled,
             LoopEnabled,
+            Count
+        };
+
+        static constexpr char BoolParamIdLabel[static_cast<int>(BoolParamId::Count)][16] = {
+                "WriteEnabled",
+                "ClearEnabled",
+                "ReadEnabled",
+                "LoopEnabled"
         };
 
         enum class IndexBoolParamId : int {
@@ -70,6 +124,14 @@ namespace mlp {
             LayerClearEnabled,
             LayerReadEnabled,
             LayerLoopEnabled,
+            Count
+        };
+
+        static constexpr char IndexBoolParamIdLabel[static_cast<int>(IndexBoolParamId::Count)][32] = {
+                "LayerWriteEnabled",
+                "LayerClearEnabled",
+                "LayerReadEnabled",
+                "LayerLoopEnabled"
         };
 
         struct IndexBoolParamValue {
@@ -106,7 +168,11 @@ namespace mlp {
         mlp::OutputsData outputsData;
         unsigned long int framesSinceOutput = 0;
 
+        float sampleRate;
+
     public:
+        void SetSampleRate(float aSampleRate) { sampleRate = aSampleRate; }
+
         void ProcessAudioBlock(const float *input, float *output, unsigned int numFrames) {
 
             ProcessParamChanges();
@@ -163,6 +229,8 @@ namespace mlp {
                     case TapId::Reset:
                         kernel.ResetLayer();
                         break;
+                    default:
+                        break;
                 }
             }
 
@@ -184,6 +252,8 @@ namespace mlp {
                     case FloatParamId::SwitchTime:
                         // TODO!
                         break;
+                    default:
+                        break;
                 }
             }
 
@@ -191,7 +261,7 @@ namespace mlp {
             while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
                     case IndexParamId::SelectLayer:
-                        kernel.SetCurrentLayer((int) indexParamChangeRequest.value);
+                        kernel.SetCurrentLayer((unsigned int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::ResetLayer:
                         kernel.ResetLayer((int) indexParamChangeRequest.value);
@@ -204,6 +274,8 @@ namespace mlp {
                         break;
                     case IndexParamId::LoopResetFrame:
                         kernel.SetLoopResetFrame(indexParamChangeRequest.value);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -223,11 +295,14 @@ namespace mlp {
                     case BoolParamId::LoopEnabled:
                         kernel.SetLoopEnabled(boolParamChangeRequest.value);
                         break;
+                    default:
+                        break;
                 }
             }
 
             ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue> indexFloatParamChangeRequest{};
             while (paramChangeQ.indexFloatQ.try_dequeue(indexFloatParamChangeRequest)) {
+                float tmpValue;
                 switch (indexFloatParamChangeRequest.id) {
                     case IndexFloatParamId::LayerPreserveLevel:
                         kernel.SetPreserveLevel(indexFloatParamChangeRequest.value.value,
@@ -242,11 +317,19 @@ namespace mlp {
                                                 (int) indexFloatParamChangeRequest.value.index);
                         break;
                     case IndexFloatParamId::LayerFadeTime:
-                        kernel.SetFadeIncrement(indexFloatParamChangeRequest.value.value,
+
+                        if (indexFloatParamChangeRequest.value.value <= 0.f) {
+                            tmpValue = 1.f;
+                        } else {
+                            tmpValue = 1.f / indexFloatParamChangeRequest.value.value;
+                        }
+                        kernel.SetFadeIncrement(tmpValue,
                                                 (int) indexFloatParamChangeRequest.value.index);
 
                     case IndexFloatParamId::LayerSwitchTime:
                         /// TODO!
+                        break;
+                    default:
                         break;
                 }
             }
@@ -265,6 +348,8 @@ namespace mlp {
                     case IndexIndexParamId::LayerLoopResetFrame:
                         kernel.SetLoopResetFrame(indexIndexParamChangeRequest.value.value,
                                                  (int) indexIndexParamChangeRequest.value.index);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -285,6 +370,8 @@ namespace mlp {
                         break;
                     case IndexBoolParamId::LayerLoopEnabled:
                         kernel.SetLoopEnabled(indexBoolParamChangeRequest.value.value);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -326,3 +413,6 @@ namespace mlp {
 
     };
 }
+
+
+#pragma GCC diagnostic pop

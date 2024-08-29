@@ -4,6 +4,9 @@ project(mlp-plug VERSION 0.0.1)
 
 add_subdirectory(JUCE)
 
+#---------------------------------------------------------------------------------------------------------------------
+#---- plugin target
+
 # `juce_add_plugin` adds a static library target with the name passed as the first argument
 # (AudioPluginExample here). This target is a normal CMake target, but has a lot of extra properties set
 # up by default. As well as this shared code static library, this function adds targets for each of
@@ -11,30 +14,30 @@ add_subdirectory(JUCE)
 # Check the readme at `docs/CMake API.md` in the JUCE repo for the full list.
 
 juce_add_plugin(mlp-plug
-    # VERSION ...                               # Set this if the plugin version is different to the project version
-    # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
-    # ICON_SMALL ...
-    COMPANY_NAME "moth-object"
-    # IS_SYNTH TRUE/FALSE                       # Is this a synth or an effect?
-    # NEEDS_MIDI_INPUT TRUE/FALSE               # Does the plugin need midi input?
-    # NEEDS_MIDI_OUTPUT TRUE/FALSE              # Does the plugin need midi output?
-    # IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
-    # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
-    # COPY_PLUGIN_AFTER_BUILD TRUE/FALSE        # Should the plugin be installed to a default location after building?
-    PLUGIN_MANUFACTURER_CODE Moth               # A four-character manufacturer id with at least one upper-case character
-    PLUGIN_CODE Mllp                            # A unique four-character plugin id with exactly one upper-case character
-                                                # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
-    FORMATS AU VST3 Standalone                  # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
-    PRODUCT_NAME "mlp")        # The name of the final executable, which can differ from the target name
+        # VERSION ...                               # Set this if the plugin version is different to the project version
+        # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
+        # ICON_SMALL ...
+        COMPANY_NAME "moth-object"
+        # IS_SYNTH TRUE/FALSE                       # Is this a synth or an effect?
+        # NEEDS_MIDI_INPUT TRUE/FALSE               # Does the plugin need midi input?
+        # NEEDS_MIDI_OUTPUT TRUE/FALSE              # Does the plugin need midi output?
+        # IS_MIDI_EFFECT TRUE/FALSE                 # Is this plugin a MIDI effect?
+        # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
+        # COPY_PLUGIN_AFTER_BUILD TRUE/FALSE        # Should the plugin be installed to a default location after building?
+        PLUGIN_MANUFACTURER_CODE Moth               # A four-character manufacturer id with at least one upper-case character
+        PLUGIN_CODE Mllp                            # A unique four-character plugin id with exactly one upper-case character
+        # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
+        FORMATS AU VST3 Standalone                  # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
+        PRODUCT_NAME "mlp")        # The name of the final executable, which can differ from the target name
 
 
 target_sources(mlp-plug
-    PRIVATE
+        PRIVATE
         PluginEditor.cpp
         PluginProcessor.cpp)
 
 target_compile_definitions(mlp-plug
-    PUBLIC
+        PUBLIC
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
         JUCE_VST3_CAN_REPLACE_VST2=0)
@@ -45,10 +48,44 @@ target_include_directories(mlp-plug PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
 target_include_directories(mlp-plug PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../extern)
 
 target_link_libraries(mlp-plug
-    PRIVATE
+        PRIVATE
         # AudioPluginData
         juce::juce_audio_utils
-    PUBLIC
+        PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
+
+#-------------------------------------------------------------------------------------------
+#--- OSC GUI target
+
+juce_add_gui_app(mlp-plug-gui
+        VERSION 0.0.1
+        COMPANY_NAME "moth-object"
+        PRODUCT_NAME "mlp-gui")
+
+target_sources(mlp-plug-gui
+        PRIVATE
+        gui-main/Main.cpp
+        gui-main/MainComponent.cpp)
+
+target_include_directories(mlp-plug-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_include_directories(mlp-plug-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
+target_include_directories(mlp-plug-gui PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../extern)
+
+target_compile_definitions(mlp-plug-gui
+        PRIVATE
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:mlp-plug-gui,JUCE_PRODUCT_NAME>"
+        JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:mlp-plug-gui,JUCE_VERSION>")
+
+
+target_link_libraries(mlp-plug-gui
+        PRIVATE
+        juce::juce_gui_extra
+        PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
