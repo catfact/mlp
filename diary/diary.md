@@ -169,8 +169,39 @@ added a lot of per-layer control glue and made things generally more granular. p
 
 **time** ~1hr
 
-# 2024/8/23
+# 2024/8/29
 
 spent a couple days focused on a quick paying gig, which is rather crucial. things are totally busy and chaotic, but it feels important to dip back into this project to maintain momentum every few days.
 
 a more complete GUI from supercollider feels like low hanging fruit right now, so i'll give it a go...
+
+[several days pass..]
+
+... well! that did not really go as predicted. every time i sat down to make a SC gui it felt like a silly prospect. the project has entered a stage of complexity that i find familiar: it needs a fairly complex interface to test everything, all the next steps are fiddly and complex, and it represents a real hurdle in terms of building enough momentum to get through it.
+
+anyways, i ended up talking myself into going directly to JUCE to build a GUI. this is after considering several other directions, but the bottom line is that for a plugin release i will end up doing a JUCE UI anyways, and i really don't to do this part twice.
+
+so i've set things up with a top-level graphics component class that can be used in an audio plugin project, or in a graphical application that serves only as an OSC interface with a running `mlp` audio process.
+
+that component now has most things exposed, it's not very pretty but the layout is at least comprehensible. i need to add a couple more widgets, for layer and mode selection. 
+
+and, in another plot twist, i am encountering sudden failure loading the coreaudio framework on macos:
+```
+dyld[7341]: dyld cache '(null)' not loaded: syscall to map cache into shared region failed
+dyld[7341]: Library not loaded: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+  Referenced from: <6B074DFD-CC05-329D-8E2D-BEAD048B1DFE> /Users/emb/code/mlp/cmake-build-debug/mlp-cli
+```
+
+this happens as soon as the program launches and loads frameworks, before entry to `main()`.
+
+the issue presents on the `wip` branch, but not on the `main` branch. i can't explain this; there don't seem to be any relevant changes between them:
+- i suspected that pulling in JUCE cmake stuff might have been causing the conflict (loading the coreaudio framework twice.) but leaving it out doesn't help!
+- i have to assume it is something about building including rtaudio as a static library. but again i can't see any relevant difference. the issue seemed to simply appear out of nowhere, and i'll need to bisect history to start trying to isolate it.
+
+so! having burned an hour or two being stuck on this, i am considering shelving the rtaudio client for now and focusing fully on a JUCE client. (which, if needed, could also forgo the GUI in favor of an OSC interface as a runtime option.) 
+
+i think the total time i've spent since last diary update is getting up to the 8 or 10 hour range, spread out over more than a week (i have a lot going on at home these days!), which feels like the maximum time to wait between diary updates. so here we are, despite being in a not terribly satisfying state.
+
+on the other hand, last time i _did_ have things working was pretty satisfying! the layer condition/behavior system seems to work and make sense (more thoughts on this later,) and a number of bugs have been ironed out regarding auto-layer-selection logic, and the special treatment of "inner" and "outer" layers regarding how they interact with others. working with the system in the "unquantized multiply" mode, with round-robin layer selection, feels predictable yet with clear potential for complexity. so overall i'm feeling pretty good about the direction.   
+
+**time**: ~10hr
