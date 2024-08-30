@@ -3,7 +3,6 @@
 //==============================================================================
 MainComponent::MainComponent() {
     addAndMakeVisible(mlpGui);
-    //addAndMakeVisible(myButt);
     setSize (1200, 800);
 }
 

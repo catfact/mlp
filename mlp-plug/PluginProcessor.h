@@ -8,6 +8,8 @@
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
 {
 public:
+    friend class AudioPluginAudioProcessorEditor;
+
     //==============================================================================
     AudioPluginAudioProcessor();
     ~AudioPluginAudioProcessor() override;

@@ -18,7 +18,7 @@ public:
         juce::ignoreUnused (commandLine);
 
         mainWindow.reset (new MainWindow (getApplicationName()));
-    }
+
 
     void shutdown() override
     {

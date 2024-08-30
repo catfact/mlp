@@ -203,6 +203,9 @@ public:
 
                 auto &layerFlagsQ = m.GetLayerFlagsQ();
                 LayerFlagsMessageData flagsData;
+                /// FIXME: whoops, this is a hot loop!
+                /// i suppose we should use BlockingReaderWriterQueue with `wait_dequeue_timed`
+                /// but also means a separate thread per Q
                 while (layerFlagsQ.try_dequeue(flagsData)) {
                     /// TODO: send the flags data... (as a blob? bool array? separate messages?)
                     std::cout << "layer " << flagsData.layer << ": ";
@@ -221,6 +224,7 @@ public:
                     std::cout << "layer position: " << posData.layer << "; "
                               << posData.positionRange[0] << " - " << posData.positionRange[1] << std::endl;
                 }
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
             }
         });

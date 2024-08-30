@@ -19,7 +19,10 @@ namespace mlp {
         Silent,
         // Active,
         Stopped,
+        Writing,
+        NotWriting,
         Clearing,
+        NotClearing,
         Opened,
         Closed,
         Count
@@ -38,7 +41,10 @@ namespace mlp {
         "Silent",
         // "Active",
         "Stopped",
+        "Writing",
+        "NotWriting",
         "Clearing",
+        "NotClearing",
         "Opened",
         "Closed"
     };

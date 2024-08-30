@@ -6,6 +6,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-enum"
 
+/// FIXME nasty
+#define EventQueue moodycamel::ReaderWriterQueue
+
 namespace mlp {
 
     // main API for the audio effect
@@ -15,8 +18,6 @@ namespace mlp {
 
         enum class TapId : int {
             Set,
-//            ToggleOverdub,
-//            ToggleMute,
             Stop,
             Reset,
             Count
@@ -24,8 +25,6 @@ namespace mlp {
 
         static constexpr char TapIdLabel[static_cast<int>(TapId::Count)][16] = {
                 "SET",
-//                "TOGGLEOVERDUB",
-//                "TOGGLEMUTE",
                 "STOP",
                 "RESET"
         };
@@ -148,19 +147,19 @@ namespace mlp {
     private:
 
         struct ParamChangeQ {
-            moodycamel::ReaderWriterQueue<TapId> tapQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<FloatParamId, float>> floatQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexParamId, unsigned long int>> indexQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<BoolParamId, bool>> boolQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue>> indexFloatQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue>> indexIndexQ;
-            moodycamel::ReaderWriterQueue<ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue>> indexBoolQ;
+            EventQueue<TapId> tapQ;
+            EventQueue<ParamChangeRequest<FloatParamId, float>> floatQ;
+            EventQueue<ParamChangeRequest<IndexParamId, unsigned long int>> indexQ;
+            EventQueue<ParamChangeRequest<BoolParamId, bool>> boolQ;
+            EventQueue<ParamChangeRequest<IndexFloatParamId, IndexFloatParamValue>> indexFloatQ;
+            EventQueue<ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue>> indexIndexQ;
+            EventQueue<ParamChangeRequest<IndexBoolParamId, IndexBoolParamValue>> indexBoolQ;
         };
         ParamChangeQ paramChangeQ;
 
         struct OutputsQ {
-            moodycamel::ReaderWriterQueue<mlp::LayerFlagsMessageData> layerFlagsQ;
-            moodycamel::ReaderWriterQueue<mlp::LayerPositionMessageData> layerPositionQ;
+            EventQueue<mlp::LayerFlagsMessageData> layerFlagsQ;
+            EventQueue<mlp::LayerPositionMessageData> layerPositionQ;
         };
         OutputsQ outputsQ;
 
@@ -186,11 +185,11 @@ namespace mlp {
             ProcessOutputs(numFrames);
         }
 
-        moodycamel::ReaderWriterQueue<mlp::LayerFlagsMessageData> &GetLayerFlagsQ() {
+        EventQueue<mlp::LayerFlagsMessageData> &GetLayerFlagsQ() {
             return outputsQ.layerFlagsQ;
         }
 
-        moodycamel::ReaderWriterQueue<mlp::LayerPositionMessageData> &GetLayerPositionQ() {
+        EventQueue<mlp::LayerPositionMessageData> &GetLayerPositionQ() {
             return outputsQ.layerPositionQ;
         }
 
@@ -217,12 +216,6 @@ namespace mlp {
                     case TapId::Set:
                         kernel.SetLoopTap();
                         break;
-//                    case TapId::ToggleOverdub:
-//                        kernel.ToggleOverdub();
-//                        break;
-//                    case TapId::ToggleMute:
-//                        kernel.ToggleMute();
-//                        break;
                     case TapId::Stop:
                         kernel.StopLoop();
                         break;

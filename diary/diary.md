@@ -185,7 +185,8 @@ so i've set things up with a top-level graphics component class that can be used
 
 that component now has most things exposed, it's not very pretty but the layout is at least comprehensible. i need to add a couple more widgets, for layer and mode selection. 
 
-and, in another plot twist, i am encountering sudden failure loading the coreaudio framework on macos:
+and, in another plot twist, i am encountering sudden failure loading the coreaudio framework on macOS, when running the rtaudio-based `mlp-cli` program:
+
 ```
 dyld[7341]: dyld cache '(null)' not loaded: syscall to map cache into shared region failed
 dyld[7341]: Library not loaded: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
@@ -198,7 +199,7 @@ the issue presents on the `wip` branch, but not on the `main` branch. i can't ex
 - i suspected that pulling in JUCE cmake stuff might have been causing the conflict (loading the coreaudio framework twice.) but leaving it out doesn't help!
 - i have to assume it is something about building including rtaudio as a static library. but again i can't see any relevant difference. the issue seemed to simply appear out of nowhere, and i'll need to bisect history to start trying to isolate it.
 
-so! having burned an hour or two being stuck on this, i am considering shelving the rtaudio client for now and focusing fully on a JUCE client. (which, if needed, could also forgo the GUI in favor of an OSC interface as a runtime option.) 
+so! having burned an hour or two being stuck on this, i am considering shelving the rtaudio client for now and focusing fully on a JUCE client. (which, if needed, could also forgo the GUI in favor of an OSC interface as a runtime option.) i've encountered a lot of little issues with rtaudio over the years, most are never explained or resolved really, so maybe it would be smart to just stop wrangling multiple platform audio wrappers in one project.
 
 i think the total time i've spent since last diary update is getting up to the 8 or 10 hour range, spread out over more than a week (i have a lot going on at home these days!), which feels like the maximum time to wait between diary updates. so here we are, despite being in a not terribly satisfying state.
 

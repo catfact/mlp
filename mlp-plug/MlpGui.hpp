@@ -24,15 +24,11 @@ class MlpGui : public juce::Component {
     //==============================================================================
     //=== I/O
 
-    MlpGuiInput* input = nullptr;
-    MlpGuiOutput* output = nullptr;
+    //MlpGuiInput* input = nullptr;
+    MlpGuiOutput *output = nullptr;
 
-    void InitIo(MlpGuiInput* aInput, MlpGuiOutput* aOutput) {
-        input = aInput;
+    void SetOutput(MlpGuiOutput *aOutput) {
         output = aOutput;
-        input->layerOutputFlagCallback = [this](unsigned int layerIndex, mlp::LayerOutputFlagId id) {
-            std::cout << "MlpGui::layerOutputFlagCallback; layer = " << layerIndex << ", flag = " << (int) id << std::endl;
-        };
     }
 
     //==============================================================================
@@ -56,6 +52,7 @@ class MlpGui : public juce::Component {
             setButtonText(label);
             onClick = [this] {
                 std::cout << "TapControl::onClick; tap = " << tapIndex << std::endl;
+
             };
         }
     };
@@ -184,7 +181,7 @@ class MlpGui : public juce::Component {
         struct LayerToggleControlGroup
                 : public LayerWidgetControlGroup<LayerToggleControl, (size_t) mlp::Mlp::BoolParamId::Count> {
             explicit LayerToggleControlGroup(int layerIndex) {
-                for (int i = 0; i < (int) mlp::Mlp::BoolParamId::Count; ++i) {
+                for (int i = 0; i < (int) mlp::Mlp::IndexBoolParamId::Count; ++i) {
                     controls.push_back(
                             std::make_unique<LayerToggleControl>(layerIndex, i, mlp::Mlp::IndexBoolParamIdLabel[i]));
                     addAndMakeVisible(controls.back().get());
@@ -261,7 +258,7 @@ private:
         void resized() override {
             juce::Grid grid;
             grid.setGap(juce::Grid::Px(8));
-            for (auto &layer: layerControlGroups) {
+            for (unsigned int i=0; i<layerControlGroups.size(); ++i) {
                 grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Fr(1)));
             }
             grid.templateRows = {juce::Grid::TrackInfo(juce::Grid::Fr(1))};
@@ -305,12 +302,15 @@ public:
         grid.performLayout(getLocalBounds());
 
     }
-//    void SetToggleState(int layerIndex, int toggleIndex, bool state) {
-//        layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[toggleIndex]->SetState(state);
-//    }
-//
-//    void SetParameterValue(int layerIndex, int paramIndex, float value) {
-//        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[paramIndex]->SetValue(value);
-//    }
+
+    void SetLayerToggleState(unsigned int layerIndex, unsigned int toggleIndex, bool state) {
+        auto &but = layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[toggleIndex];
+        but->setToggleState(state, juce::NotificationType::dontSendNotification);
+    }
+
+    void SetLayerSelection(unsigned int layerIndex) {
+        //// TODO
+        (void) layerIndex;
+    }
 
 };
