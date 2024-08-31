@@ -16,6 +16,7 @@ namespace mlp {
         Paused,
         Resumed,
         Reset,
+        Restarted,
         Silent,
         // Active,
         Stopped,
@@ -40,6 +41,7 @@ namespace mlp {
         "Paused",
         "Resumed",
         "Reset",
+        "Restarted",
         "Silent",
         // "Active",
         "Stopped",
@@ -60,7 +62,7 @@ namespace mlp {
     struct LayerOutputs {
         LayerOutputFlags flags;
         // initial and final logical frame positions since last read
-        frame_t positionRange[2];
+        frame_t positionRange[2]{};
     };
 
     struct OutputsData {
@@ -71,7 +73,7 @@ namespace mlp {
     };
 
     struct LayerFlagsMessageData {
-        unsigned int layer;
+        unsigned int layer{};
         LayerOutputFlags flags;
     };
 

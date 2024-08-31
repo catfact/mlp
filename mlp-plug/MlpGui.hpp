@@ -22,24 +22,32 @@ class MlpGui : public juce::Component {
 //==============================================================================
 //=== I/O
 
-// MlpGuiOutput *output = nullptr;
+    // MlpGuiOutput *output = nullptr;
 
-/// FIXME: this is lame, but i don't to deal with passing the output pointer down to all child widgets
-/// i think a cleaner way would be to make the top level component an event handler for widgets,
-/// bubble them up there and have the top level component call the output functions
-/// (still a little gross, since top component would need to know about all the widgets)
-/// for now, making the output into a global variable :(
+    /// FIXME: this is lame, but i don't to deal with passing the output pointer down to all child widgets
+    /// i think a cleaner way would be to make the top level component an event handler for widgets,
+    /// bubble them up there and have the top level component call the output functions
+    /// (still a little gross, since top component would need to be able to identify any child)
+    /// for now, making the output interface into a global variable :( whateverrr
     static MlpGuiOutput *output;
 
     //==============================================================================
-//=== GUI components
+    //=== GUI components
 
     static constexpr int buttonHeight = 64;
     static constexpr int tapButtonWidth = buttonHeight * 3 / 2;
     static constexpr int sliderHeight = buttonHeight * 3 / 4;
 
-//----------------------------------------------------------------------------------
-//--- widget classes
+    //==============================================================================
+    //====  widget classes
+
+    //----------------------------------------------------------------------------------
+    class Spacer : public juce::Component {
+    public:
+        void paint(juce::Graphics &g) override {
+            g.fillAll(juce::Colours::transparentBlack);
+        }
+    };
 
     class TapControl : public juce::TextButton {
         int tapIndex;
@@ -57,6 +65,7 @@ class MlpGui : public juce::Component {
         }
     };
 
+    //----------------------------------------------------------------------------------
     class LayerToggleControl : public juce::TextButton {
         int layerIndex;
         int toggleIndex;
@@ -72,13 +81,15 @@ class MlpGui : public juce::Component {
                 std::cout << "LayerToggleControl::onClick; layer = " << layerIndex << ", toggle = " << toggleIndex
                           << ", state = " << (getToggleState() ? "ON" : "OFF") << std::endl;
                 if (output) {
-                    output->SendIndexBool(static_cast<mlp::Mlp::IndexBoolParamId>(toggleIndex), (unsigned int)layerIndex,
+                    output->SendIndexBool(static_cast<mlp::Mlp::IndexBoolParamId>(toggleIndex),
+                                          (unsigned int) layerIndex,
                                           getToggleState());
                 }
             };
         }
     };
 
+    //----------------------------------------------------------------------------------
     class LayerParameterControl : public juce::Slider {
         int layerIndex;
         int parameterIndex;
@@ -104,14 +115,43 @@ class MlpGui : public juce::Component {
         }
     };
 
-    struct TapControlGroup : public juce::Component {
-        std::vector<std::unique_ptr<TapControl>> controls;
+    //----------------------------------------------------------------------------------
+    struct LayerOutputLog : public juce::TextEditor {
+        static constexpr int numLines = 24;
+        std::array<std::string, numLines> lines{};
+        unsigned int lineIndex = 0;
+
+        explicit LayerOutputLog() {
+            setMultiLine(true);
+            setReadOnly(true);
+        }
+
+        void AddLine(const std::string &line) {
+            lines[lineIndex] = line;
+            lineIndex = (lineIndex + 1) % numLines;
+            std::string text;
+            for (unsigned int i = 0; i < numLines; ++i) {
+                text += lines[(lineIndex + i) % numLines] + "\n";
+            }
+            setText(text, juce::dontSendNotification);
+        }
+
+    };
+
+
+//==============================================================================================
+//====== container classes
+
+
+    //----------------------------------------------------------------------------------
+    struct GlobalControlGroup : public juce::Component {
+        std::vector<std::unique_ptr<TapControl>> tapControls;
         static constexpr size_t numTaps = (size_t) mlp::Mlp::TapId::Count;
 
-        explicit TapControlGroup() {
+        explicit GlobalControlGroup() {
             for (size_t i = 0; i < numTaps; ++i) {
-                controls.push_back(std::make_unique<TapControl>(i, mlp::Mlp::TapIdLabel[i]));
-                addAndMakeVisible(controls.back().get());
+                tapControls.push_back(std::make_unique<TapControl>(i, mlp::Mlp::TapIdLabel[i]));
+                addAndMakeVisible(tapControls.back().get());
             }
         }
 
@@ -126,14 +166,14 @@ class MlpGui : public juce::Component {
             for (unsigned int i = 0; i < numTaps; ++i) {
                 grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth)));
             };
-            for (auto &control: controls) {
+            for (auto &control: tapControls) {
                 grid.items.add(juce::GridItem(*control));
             }
             grid.performLayout(getLocalBounds());
         }
     };
 
-//----------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------
     struct LayerControlGroup : public juce::Component {
 
         template<typename ControlType, unsigned int numWidgets, bool isVertical = false, int px = -1>
@@ -182,6 +222,7 @@ class MlpGui : public juce::Component {
             }
         };
 
+    //----------------------------------------------------------------------------------
         struct LayerToggleControlGroup
                 : public LayerWidgetControlGroup<LayerToggleControl, (size_t) mlp::Mlp::BoolParamId::Count> {
             explicit LayerToggleControlGroup(int layerIndex) {
@@ -193,6 +234,7 @@ class MlpGui : public juce::Component {
             }
         };
 
+    //----------------------------------------------------------------------------------
         struct LayerParameterControlGroup
                 : public LayerWidgetControlGroup<LayerParameterControl, (size_t) mlp::Mlp::FloatParamId::Count, true, sliderHeight> {
             explicit LayerParameterControlGroup(int layerIndex) {
@@ -204,27 +246,6 @@ class MlpGui : public juce::Component {
             }
         };
 
-        struct LayerOutputLog : public juce::TextEditor {
-            static constexpr int numLines = 24;
-            std::array<std::string, numLines> lines{};
-            unsigned int lineIndex = 0;
-
-            explicit LayerOutputLog() {
-                setMultiLine(true);
-                setReadOnly(true);
-            }
-
-            void AddLine(const std::string &line) {
-                lines[lineIndex] = line;
-                lineIndex = (lineIndex + 1) % numLines;
-                std::string text;
-                for (unsigned int i = 0; i < numLines; ++i) {
-                    text += lines[(lineIndex + i) % numLines] + "\n";
-                }
-                setText(text, juce::dontSendNotification);
-            }
-
-        };
 
         std::unique_ptr<juce::TextButton> selectedToggle;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
@@ -280,7 +301,7 @@ class MlpGui : public juce::Component {
 //----------------------------------------------------------------------------------
 private:
     MlpLookAndFeel lookAndFeel;
-    std::unique_ptr<TapControlGroup> tapControlGroup;
+    std::unique_ptr<GlobalControlGroup> globalControlGroup;
 
     struct LayerControlStack : public juce::Component {
         std::array<std::unique_ptr<LayerControlGroup>, mlp::numLoopLayers> layerControlGroups;
@@ -311,9 +332,9 @@ private:
 public:
 
     MlpGui() {
-        tapControlGroup = std::make_unique<TapControlGroup>();
+        globalControlGroup = std::make_unique<GlobalControlGroup>();
         layerControlStack = std::make_unique<LayerControlStack>();
-        addAndMakeVisible(tapControlGroup.get());
+        addAndMakeVisible(globalControlGroup.get());
         addAndMakeVisible(layerControlStack.get());
         output = nullptr;
     }
@@ -337,7 +358,7 @@ public:
                 Track(Fr(1))
         };
 
-        grid.items.add(juce::GridItem(*tapControlGroup));
+        grid.items.add(juce::GridItem(*globalControlGroup));
         grid.items.add(juce::GridItem(*layerControlStack));
 
         grid.performLayout(getLocalBounds());

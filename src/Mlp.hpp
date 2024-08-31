@@ -240,10 +240,12 @@ namespace mlp {
                         kernel.SetPlaybackLevel(floatParamChangeRequest.value);
                         break;
                     case FloatParamId::FadeTime:
-                        kernel.SetFadeIncrement(floatParamChangeRequest.value);
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        kernel.SetFadeTime(floatParamChangeRequest.value * 10.f);
                         break;
                     case FloatParamId::SwitchTime:
-                        // TODO!
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        kernel.SetSwitchTime(floatParamChangeRequest.value * 10.f);
                         break;
                     default:
                         break;
@@ -310,17 +312,17 @@ namespace mlp {
                                                 (int) indexFloatParamChangeRequest.value.index);
                         break;
                     case IndexFloatParamId::LayerFadeTime:
-
-                        if (indexFloatParamChangeRequest.value.value <= 0.f) {
-                            tmpValue = 1.f;
-                        } else {
-                            tmpValue = 1.f / indexFloatParamChangeRequest.value.value;
-                        }
-                        kernel.SetFadeIncrement(tmpValue,
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
+                        kernel.SetFadeTime(tmpValue,
                                                 (int) indexFloatParamChangeRequest.value.index);
 
                     case IndexFloatParamId::LayerSwitchTime:
-                        /// TODO!
+/// FIXME: need a more formal/ explicit way of specifying parameter range mappings
+                        tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
+                        kernel.SetSwitchTime(tmpValue,
+                                           (int) indexFloatParamChangeRequest.value.index);
+
                         break;
                     default:
                         break;

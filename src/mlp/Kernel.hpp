@@ -32,6 +32,7 @@ namespace mlp {
         //----------------------------------------
         //--- other runtime state
 
+        double sampleRate{48000};
         // currently-selected layer index
         unsigned int currentLayer{0};
         // the "innermost" layer will not trigger actions on layers "below" it
@@ -76,6 +77,10 @@ namespace mlp {
 
             SetInnerLayer(0);
             SetOuterLayer(0);
+        }
+
+        void SetSampleRate(float aSampleRate) {
+            sampleRate = aSampleRate;
         }
 
         // process a single *stereo interleaved* audio frame
@@ -294,7 +299,6 @@ namespace mlp {
             if (layer[layerIndex].resetFrame > layer[layerIndex].loopEndFrame) {
                 layer[layerIndex].resetFrame = layer[layerIndex].loopEndFrame;
             }
-
         }
 
         void SetLoopResetFrame(frame_t frame, int aLayerIndex = -1) {
@@ -305,10 +309,24 @@ namespace mlp {
             }
         }
 
+        void SetFadeTime(float aSeconds, int aLayerIndex = -1) {
+            SetFadeIncrement(static_cast<float>(1.0 / (aSeconds * sampleRate)), aLayerIndex);
+        }
+
+        void SetSwitchTime(float aSeconds, int aLayerIndex = -1) {
+            SetSwitchIncrement(static_cast<float>(1.0 / (aSeconds * sampleRate)), aLayerIndex);
+        }
+
         void SetFadeIncrement(float increment, int aLayerIndex = -1) {
             unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             layer[layerIndex].SetFadeIncrement(increment);
         }
+
+        void SetSwitchIncrement(float increment, int aLayerIndex = -1) {
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
+            layer[layerIndex].SetSwitchIncrement(increment);
+        }
+
 
         void SetLoopEnabled(bool enabled, int aLayerIndex = -1) {
             unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
@@ -321,6 +339,17 @@ namespace mlp {
 
         void SetClearOnSet(bool clear) {
             clearLayerOnSet = clear;
+        }
+
+
+        void SetWriteOnSet(bool write) {
+            (void)write;
+            //....TODO
+        }
+
+        void SetReadOnSet(bool read) {
+            (void)read;
+            //....TODO
         }
 
         void SetAdvanceLayerOnLoopOpen(bool advance) {

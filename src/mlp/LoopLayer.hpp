@@ -323,6 +323,13 @@ namespace mlp {
             }
         }
 
+        void SetSwitchIncrement(float increment) {
+            // FIXME / NB: this will only take effect on the next open/close
+            writeSwitch.SetDelta(increment);
+            readSwitch.SetDelta(increment);
+            clearSwitch.SetDelta(increment);
+        }
+
         bool GetIsActive() const {
             if (state == LoopLayerState::STOPPED) {
                 return false;

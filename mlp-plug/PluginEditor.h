@@ -63,6 +63,8 @@ private:
                                 break;
                             case LayerOutputFlagId::Reset:
                                 break;
+                            case LayerOutputFlagId::Restarted:
+                                break;
                             case LayerOutputFlagId::Silent:
                                 break;
                             case LayerOutputFlagId::Stopped:
@@ -121,6 +123,10 @@ private:
 
         void SendBool(mlp::Mlp::BoolParamId id, bool value) override {
             mlp.BoolParamChange(id, value);
+        }
+
+        void SendIndex(mlp::Mlp::IndexParamId id, unsigned int index) override {
+            mlp.IndexParamChange(id, index);
         }
 
         void SendIndexBool(mlp::Mlp::IndexBoolParamId id, unsigned int index, bool value) override {

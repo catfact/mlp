@@ -18,6 +18,7 @@ class MlpGuiOutput {
 public:
     virtual void SendTap(mlp::Mlp::TapId id) = 0;
     virtual void SendBool(mlp::Mlp::BoolParamId id, bool value) = 0;
+    virtual void SendIndex(mlp::Mlp::IndexParamId id, unsigned int index) = 0;
     virtual void SendIndexBool(mlp::Mlp::IndexBoolParamId id, unsigned int index, bool value) = 0;
     virtual void SendIndexFloat(mlp::Mlp::IndexFloatParamId id, unsigned int index, float value) = 0;
 };

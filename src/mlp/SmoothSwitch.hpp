@@ -84,5 +84,10 @@ namespace mlp {
         bool IsActive() const {
             return isOpen || isSwitching;
         }
+
+        void SetDelta(float d) {
+            delta = d;
+            sdelta = isOpen ? delta : -delta;
+        }
     };
 }
