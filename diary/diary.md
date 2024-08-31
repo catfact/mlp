@@ -206,3 +206,45 @@ i think the total time i've spent since last diary update is getting up to the 8
 on the other hand, last time i _did_ have things working was pretty satisfying! the layer condition/behavior system seems to work and make sense (more thoughts on this later,) and a number of bugs have been ironed out regarding auto-layer-selection logic, and the special treatment of "inner" and "outer" layers regarding how they interact with others. working with the system in the "unquantized multiply" mode, with round-robin layer selection, feels predictable yet with clear potential for complexity. so overall i'm feeling pretty good about the direction.   
 
 **time**: ~10hr
+
+
+# 2024/8/29
+
+ok managed to put together a JUCE project pretty efficiently and with no real issues. the GUI is ugly as heck but it does most of the things that it needs to.
+
+----
+
+final touches that the basic GUI still needs to be "complete" :
+
+- mode buttons
+- current-layer selection buttons
+- labels for slider parameters
+
+oh, and for sure:
+- reflect the initial state of the system
+
+and maybe:
+- live position indicators? (but, a rabbit hole: we do not actually report loop length, so hard to know how to scale.)
+
+- architecturally, at some point there should be a clean way of specifying float parameter rangs / curves / mappings.
+
+----
+
+i still haven't added any facility to change modes. i think i'm basically just scared to test Insert and any other new modes, because i suspect some deep flaw in my logic around imagining that they are [pssible with this limited set of "sync opcodes" i've come up with. bah! how silly. i will get past this little obstacle very soon.
+
+the other thing that this version needs pretty badly is some kind of MIDI mapping. not sure of the best way to do this. the simplest is with just a configuration file. i think a simple YAML for now, which could be serialized and managed by the plugin framework.
+
+---
+
+had some more thoughts / realizations about planned features:
+
+- filters. each layer needs some for sure. i think two per layer should do it; the main questions are:
+  - how many parameters to expose? the minimal version would be HP and LP in series, only cutoff controls. maximally, each could offer arbitrary mode-blending, resonance controls, maybe saturation, and the routing could be series or parallel.
+  - how many models / which models to expose? i have a nice 2p/4p ladder model that might suffice, maybe with different saturators for flavor.
+
+- inter-layer audio routing matrix. with levels of course, but i would _really_ like to have (optional) stereo processing in that matrix as well. (and on layer->main outputs.) i have a nice band-split stereoizer module that could be adapted to stereo->stereo operation.
+
+- mode specification. i have been thinking of this in terms of a DSL or arbitrarily complex data structure, but in reality it could almost just be... a patch matrix? with per-layer conditions on one axis, and per-layer actions on the other. (a pretty big and unwieldy matrix to be sure.) of course a sparse text-based representation would still be useful.
+
+**time**: ~4hr
+
