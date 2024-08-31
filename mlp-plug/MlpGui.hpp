@@ -205,7 +205,7 @@ class MlpGui : public juce::Component {
         };
 
         struct LayerOutputLog : public juce::TextEditor {
-            static constexpr int numLines = 32;
+            static constexpr int numLines = 24;
             std::array<std::string, numLines> lines{};
             unsigned int lineIndex = 0;
 

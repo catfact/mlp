@@ -149,8 +149,6 @@ namespace mlp {
 
         // first action: opens/closes the loop, advances the layer
         void SetLoopTap() {
-
-
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::LOOPING:
@@ -169,6 +167,7 @@ namespace mlp {
 
                     std::cout << "TapLoop(): opening loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].OpenLoop();
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Writing);
                     SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Opened);
                     layerBehavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop);
                     if (clearLayerOnSet) {
