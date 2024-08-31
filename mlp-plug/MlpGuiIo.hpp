@@ -15,6 +15,7 @@ struct MlpGuiInput {
 };
 
 class MlpGuiOutput {
+public:
     virtual void SendTap(mlp::Mlp::TapId id) = 0;
     virtual void SendBool(mlp::Mlp::BoolParamId id, bool value) = 0;
     virtual void SendIndexBool(mlp::Mlp::IndexBoolParamId id, unsigned int index, bool value) = 0;

@@ -112,6 +112,7 @@ private:
     class EditorOutput: public MlpGuiOutput {
         mlp::Mlp &mlp;
 
+    public:
         explicit EditorOutput(mlp::Mlp &aMlp) : mlp(aMlp) {}
 
         void SendTap(mlp::Mlp::TapId id) override {
@@ -137,6 +138,7 @@ private:
 
     MlpGui mlpGui;
     EditorInput editorInput;
+    EditorOutput editorOutput;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

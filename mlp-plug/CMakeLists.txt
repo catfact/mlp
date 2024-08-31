@@ -34,7 +34,8 @@ juce_add_plugin(mlp-plug
 target_sources(mlp-plug
         PRIVATE
         PluginEditor.cpp
-        PluginProcessor.cpp)
+        PluginProcessor.cpp
+        MlpGui.cpp)
 
 target_compile_definitions(mlp-plug
         PUBLIC

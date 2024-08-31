@@ -3,12 +3,13 @@
 
 //==============================================================================
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
-    : AudioProcessorEditor (&p), processorRef (p), editorInput(p.mlp, mlpGui)
+    : AudioProcessorEditor (&p), processorRef (p), editorInput(p.mlp, mlpGui), editorOutput(p.mlp)
 {
     juce::ignoreUnused (processorRef);
 
     addAndMakeVisible(mlpGui);
     setSize (1200, 800);
+    mlpGui.SetOutput(&editorOutput);
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()

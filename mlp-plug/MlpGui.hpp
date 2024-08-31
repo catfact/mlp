@@ -19,29 +19,27 @@
 
 class MlpGui : public juce::Component {
 
+//==============================================================================
+//=== I/O
 
+// MlpGuiOutput *output = nullptr;
+
+/// FIXME: this is lame, but i don't to deal with passing the output pointer down to all child widgets
+/// i think a cleaner way would be to make the top level component an event handler for widgets,
+/// bubble them up there and have the top level component call the output functions
+/// (still a little gross, since top component would need to know about all the widgets)
+/// for now, making the output into a global variable :(
+    static MlpGuiOutput *output;
 
     //==============================================================================
-    //=== I/O
-
-    //MlpGuiInput* input = nullptr;
-    MlpGuiOutput *output = nullptr;
-
-    void SetOutput(MlpGuiOutput *aOutput) {
-        output = aOutput;
-    }
-
-    //==============================================================================
-    //=== GUI components
+//=== GUI components
 
     static constexpr int buttonHeight = 64;
     static constexpr int tapButtonWidth = buttonHeight * 3 / 2;
-//    static constexpr int toggleButtonWidth = buttonHeight * 3 / 2;
     static constexpr int sliderHeight = buttonHeight * 3 / 4;
-//    static constexpr int sliderMinWidth = 128;
 
-    //----------------------------------------------------------------------------------
-    //--- widget classes
+//----------------------------------------------------------------------------------
+//--- widget classes
 
     class TapControl : public juce::TextButton {
         int tapIndex;
@@ -52,7 +50,9 @@ class MlpGui : public juce::Component {
             setButtonText(label);
             onClick = [this] {
                 std::cout << "TapControl::onClick; tap = " << tapIndex << std::endl;
-
+                if (output) {
+                    output->SendTap(static_cast<mlp::Mlp::TapId>(tapIndex));
+                }
             };
         }
     };
@@ -71,6 +71,10 @@ class MlpGui : public juce::Component {
             onClick = [this] {
                 std::cout << "LayerToggleControl::onClick; layer = " << layerIndex << ", toggle = " << toggleIndex
                           << ", state = " << (getToggleState() ? "ON" : "OFF") << std::endl;
+                if (output) {
+                    output->SendIndexBool(static_cast<mlp::Mlp::IndexBoolParamId>(toggleIndex), (unsigned int)layerIndex,
+                                          getToggleState());
+                }
             };
         }
     };
@@ -91,6 +95,11 @@ class MlpGui : public juce::Component {
             onValueChange = [=] {
                 std::cout << "LayerParameterControl::onValueChange; layer = " << layerIndex << ", parameter = "
                           << parameterIndex << "(" << aLabel << "), value = " << getValue() << std::endl;
+
+                if (output) {
+                    output->SendIndexFloat(static_cast<mlp::Mlp::IndexFloatParamId>(parameterIndex),
+                                           static_cast<unsigned int>(layerIndex), static_cast<float>(getValue()));
+                }
             };
         }
     };
@@ -124,7 +133,7 @@ class MlpGui : public juce::Component {
         }
     };
 
-    //----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
     struct LayerControlGroup : public juce::Component {
 
         template<typename ControlType, unsigned int numWidgets, bool isVertical = false, int px = -1>
@@ -217,7 +226,7 @@ class MlpGui : public juce::Component {
 
         };
 
-        std::unique_ptr<juce::ToggleButton> selectedToggle;
+        std::unique_ptr<juce::TextButton> selectedToggle;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
         std::unique_ptr<LayerParameterControlGroup> parameterControlGroup;
         std::unique_ptr<LayerOutputLog> outputLog;
@@ -225,8 +234,11 @@ class MlpGui : public juce::Component {
 
     public:
         explicit LayerControlGroup(int layerIndex) {
-            //selectedToggle = std::make_unique<LayerToggleControl>(layerIndex, mlp::Mlp::IndexBoolParamId::, "Selected");
-            selectedToggle = std::make_unique<juce::ToggleButton>("SELECTED");
+            selectedToggle = std::make_unique<juce::TextButton>("SELECTED");
+            selectedToggle->setToggleable(true);
+            // FIXME: for now, we don't have explicit layer selection!
+            selectedToggle->setClickingTogglesState(false);
+
             toggleControlGroup = std::make_unique<LayerToggleControlGroup>(layerIndex);
             parameterControlGroup = std::make_unique<LayerParameterControlGroup>(layerIndex);
             outputLog = std::make_unique<LayerOutputLog>();
@@ -265,7 +277,7 @@ class MlpGui : public juce::Component {
         }
     };
 
-    //----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 private:
     MlpLookAndFeel lookAndFeel;
     std::unique_ptr<TapControlGroup> tapControlGroup;
@@ -283,7 +295,7 @@ private:
         void resized() override {
             juce::Grid grid;
             grid.setGap(juce::Grid::Px(8));
-            for (unsigned int i=0; i<layerControlGroups.size(); ++i) {
+            for (unsigned int i = 0; i < layerControlGroups.size(); ++i) {
                 grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Fr(1)));
             }
             grid.templateRows = {juce::Grid::TrackInfo(juce::Grid::Fr(1))};
@@ -297,14 +309,18 @@ private:
     std::unique_ptr<LayerControlStack> layerControlStack;
 
 public:
+
     MlpGui() {
         tapControlGroup = std::make_unique<TapControlGroup>();
         layerControlStack = std::make_unique<LayerControlStack>();
         addAndMakeVisible(tapControlGroup.get());
         addAndMakeVisible(layerControlStack.get());
+        output = nullptr;
     }
 
-    void resized() override {
+    void resized()
+
+    override {
         juce::Grid grid;
 
         using Track = juce::Grid::TrackInfo;
@@ -335,7 +351,8 @@ public:
 
     void SetLayerSelection(unsigned int layerIndex) {
         for (unsigned int i = 0; i < mlp::numLoopLayers; ++i) {
-            layerControlStack->layerControlGroups[i]->selectedToggle->setToggleState(layerIndex == i, juce::NotificationType::dontSendNotification);
+            layerControlStack->layerControlGroups[i]->selectedToggle->setToggleState(layerIndex == i,
+                                                                                     juce::NotificationType::dontSendNotification);
         }
     }
 
@@ -343,4 +360,7 @@ public:
         layerControlStack->layerControlGroups[layerIndex]->outputLog->AddLine(line);
     }
 
+    void SetOutput(MlpGuiOutput *aOutput) {
+        output = aOutput;
+    }
 };
