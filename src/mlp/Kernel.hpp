@@ -156,10 +156,11 @@ namespace mlp {
                 case LoopLayerState::LOOPING:
                     if (advanceLayerOnLoopOpen && shouldAdvanceLayerOnNextTap) {
                         //std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
-                        if (++currentLayer >= numLoopLayers) {
+                        if (currentLayer >= (numLoopLayers-1)) {
                             SetCurrentLayer(0);
+                        } else {
+                            SetCurrentLayer(currentLayer + 1);
                         }
-                        SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Selected);
                         shouldAdvanceLayerOnNextTap = false;
                     }
                     if (currentLayer >= numLoopLayers) {
@@ -172,18 +173,20 @@ namespace mlp {
                     layerBehavior[currentLayer].ProcessCondition(LayerConditionId::OpenLoop);
                     if (clearLayerOnSet) {
                         layer[currentLayer].SetClear(true);
+                        SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
                     }
                     shouldAdvanceLayerOnNextTap = false;
-                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Clearing);
                     break;
 
                 case LoopLayerState::SETTING:
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
-                    layer[currentLayer].CloseLoop();
+                    layer[currentLayer].CloseLoop(true, false);
                     layerBehavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop);
                     shouldAdvanceLayerOnNextTap = true;
                     SetOuterLayer(currentLayer);
                     SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Closed);
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::NotWriting);
+                    SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Reading);
                     break;
             }
         }
@@ -229,6 +232,7 @@ namespace mlp {
             assert(currentLayer >= 0 && currentLayer < numLoopLayers);
             // std::cout << "(stopping current layer)" << std::endl;
             layer[currentLayer].Stop();
+            SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Stopped);
             if (clearLayerOnStop) {
                 //layer[currentLayer].preserveLevel = 0.f;
                 layer[currentLayer].clearSwitch.Open();
@@ -328,6 +332,7 @@ namespace mlp {
             unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
             if (layerIndex >= 0 && layerIndex < numLoopLayers) {
                 layer[layerIndex].Reset();
+                SetOutputLayerFlag(layerIndex, LayerOutputFlagId::Reset);
             }
         }
     };

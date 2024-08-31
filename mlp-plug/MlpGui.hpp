@@ -95,11 +95,6 @@ class MlpGui : public juce::Component {
         }
     };
 
-
-    struct LayerRadioButton : public juce::ToggleButton {
-        /// TODO
-    };
-
     struct TapControlGroup : public juce::Component {
         std::vector<std::unique_ptr<TapControl>> controls;
         static constexpr size_t numTaps = (size_t) mlp::Mlp::TapId::Count;
@@ -200,16 +195,46 @@ class MlpGui : public juce::Component {
             }
         };
 
+        struct LayerOutputLog : public juce::TextEditor {
+            static constexpr int numLines = 32;
+            std::array<std::string, numLines> lines{};
+            unsigned int lineIndex = 0;
+
+            explicit LayerOutputLog() {
+                setMultiLine(true);
+                setReadOnly(true);
+            }
+
+            void AddLine(const std::string &line) {
+                lines[lineIndex] = line;
+                lineIndex = (lineIndex + 1) % numLines;
+                std::string text;
+                for (unsigned int i = 0; i < numLines; ++i) {
+                    text += lines[(lineIndex + i) % numLines] + "\n";
+                }
+                setText(text, juce::dontSendNotification);
+            }
+
+        };
+
+        std::unique_ptr<juce::ToggleButton> selectedToggle;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
         std::unique_ptr<LayerParameterControlGroup> parameterControlGroup;
+        std::unique_ptr<LayerOutputLog> outputLog;
+
 
     public:
         explicit LayerControlGroup(int layerIndex) {
+            //selectedToggle = std::make_unique<LayerToggleControl>(layerIndex, mlp::Mlp::IndexBoolParamId::, "Selected");
+            selectedToggle = std::make_unique<juce::ToggleButton>("SELECTED");
             toggleControlGroup = std::make_unique<LayerToggleControlGroup>(layerIndex);
             parameterControlGroup = std::make_unique<LayerParameterControlGroup>(layerIndex);
+            outputLog = std::make_unique<LayerOutputLog>();
+
+            addAndMakeVisible(selectedToggle.get());
             addAndMakeVisible(toggleControlGroup.get());
             addAndMakeVisible(parameterControlGroup.get());
-
+            addAndMakeVisible(outputLog.get());
         }
 
         void resized() override {
@@ -226,15 +251,15 @@ class MlpGui : public juce::Component {
             };
             grid.templateRows = {
                     Track(Px(buttonHeight)),
+                    Track(Px(buttonHeight)),
                     Track(Fr(1)),
-                    //Track(Fr(1)),
+                    Track(Fr(2)),
             };
+
+            grid.items.add(juce::GridItem(*selectedToggle));
             grid.items.add(juce::GridItem(*toggleControlGroup));
             grid.items.add(juce::GridItem(*parameterControlGroup));
-            // other things:
-            // - layer select radio buttons (across layers)
-            // - mode select radio buttons (per layer)
-            // - outputs log (per layer)
+            grid.items.add(juce::GridItem(*outputLog));
 
             grid.performLayout(getLocalBounds());
         }
@@ -309,8 +334,13 @@ public:
     }
 
     void SetLayerSelection(unsigned int layerIndex) {
-        //// TODO
-        (void) layerIndex;
+        for (unsigned int i = 0; i < mlp::numLoopLayers; ++i) {
+            layerControlStack->layerControlGroups[i]->selectedToggle->setToggleState(layerIndex == i, juce::NotificationType::dontSendNotification);
+        }
+    }
+
+    void AddLogLine(unsigned int layerIndex, const std::string &line) {
+        layerControlStack->layerControlGroups[layerIndex]->outputLog->AddLine(line);
     }
 
 };

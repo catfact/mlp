@@ -23,6 +23,8 @@ namespace mlp {
         NotWriting,
         Clearing,
         NotClearing,
+        Reading,
+        NotReading,
         Opened,
         Closed,
         Count
@@ -45,6 +47,8 @@ namespace mlp {
         "NotWriting",
         "Clearing",
         "NotClearing",
+        "Reading",
+        "NotReading",
         "Opened",
         "Closed"
     };

@@ -33,12 +33,15 @@ private:
             auto &layerFlagsQ = mlp.GetLayerFlagsQ();
             LayerFlagsMessageData flagsData{};
             while (layerFlagsQ.try_dequeue(flagsData)) {
-                std::cout << "layer " << flagsData.layer << ": ";
+                //std::cout << "layer " << flagsData.layer << ": ";
 
                 for (int i = 0; i < static_cast<int>(LayerOutputFlagId::Count); ++i) {
                     auto flag = static_cast<LayerOutputFlagId>(i);
                     if (flagsData.flags.Test(flag)) {
-                        std::cout << LayerOutputFlagLabel[i] << ", ";
+                        //std::cout << LayerOutputFlagLabel[i] << ", ";
+
+                        gui.AddLogLine(flagsData.layer, LayerOutputFlagLabel[i]);
+
                         switch (flag) {
                             case LayerOutputFlagId::Selected:
                                 gui.SetLayerSelection(flagsData.layer);
@@ -66,6 +69,21 @@ private:
                                 break;
                             case LayerOutputFlagId::Clearing:
                                 gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerClearEnabled, true);
+                                break;
+                            case LayerOutputFlagId::NotClearing:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerClearEnabled, false);
+                                break;
+                            case LayerOutputFlagId::Writing:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerWriteEnabled, true);
+                                break;
+                            case LayerOutputFlagId::NotWriting:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerWriteEnabled, false);
+                                break;
+                            case LayerOutputFlagId::Reading:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerReadEnabled, true);
+                                break;
+                            case LayerOutputFlagId::NotReading:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerReadEnabled, false);
                                 break;
                             case LayerOutputFlagId::Opened:
                                 break;
