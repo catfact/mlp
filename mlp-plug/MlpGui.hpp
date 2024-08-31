@@ -25,10 +25,7 @@ class MlpGui : public juce::Component {
     // MlpGuiOutput *output = nullptr;
 
     /// FIXME: this is lame, but i don't to deal with passing the output pointer down to all child widgets
-    /// i think a cleaner way would be to make the top level component an event handler for widgets,
-    /// bubble them up there and have the top level component call the output functions
-    /// (still a little gross, since top component would need to be able to identify any child)
-    /// for now, making the output interface into a global variable :( whateverrr
+    /// for now, making the output interface into a global variable :(
     static MlpGuiOutput *output;
 
     //==============================================================================
@@ -147,12 +144,38 @@ class MlpGui : public juce::Component {
     struct GlobalControlGroup : public juce::Component {
         std::vector<std::unique_ptr<TapControl>> tapControls;
         static constexpr size_t numTaps = (size_t) mlp::Mlp::TapId::Count;
+        std::vector<std::unique_ptr<juce::TextButton>> modeButtons;
+
+        Spacer space1;
+        Spacer space2;
 
         explicit GlobalControlGroup() {
             for (size_t i = 0; i < numTaps; ++i) {
                 tapControls.push_back(std::make_unique<TapControl>(i, mlp::Mlp::TapIdLabel[i]));
                 addAndMakeVisible(tapControls.back().get());
             }
+
+            auto addModeBut = [this](const std::string &label, int mode) {
+                auto but = std::make_unique<juce::TextButton>(label);
+                but->setRadioGroupId(1);
+                but->setClickingTogglesState(true);
+                but->setToggleable(true);
+                but->onClick = [mode] {
+                    std::cout << "GlobalControlGroup::modeButton::onClick; mode = " << mode << std::endl;
+                    if (output) {
+                        output->SendIndex(mlp::Mlp::IndexParamId::Mode, static_cast<unsigned int>(mode));
+                    }
+                };
+                addAndMakeVisible(but.get());
+                modeButtons.push_back(std::move(but));
+            };
+
+            addModeBut("ASYNC", 0);
+            addModeBut("MULTIPLY", 1);
+            addModeBut("INSERT", 2);
+
+            addAndMakeVisible(space1);
+            addAndMakeVisible(space2);
         }
 
         void resized() override {
@@ -163,12 +186,34 @@ class MlpGui : public juce::Component {
                     juce::Grid::TrackInfo(juce::Grid::Fr(1)),
             };
             grid.templateColumns = {};
+
+            // spacer
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth/2)));
+
             for (unsigned int i = 0; i < numTaps; ++i) {
                 grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth)));
             };
+
+            // spacer
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth/2)));
+
+            /// mode buttons
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth)));
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth)));
+            grid.templateColumns.add(juce::Grid::TrackInfo(juce::Grid::Px(tapButtonWidth)));
+
+            grid.items.add(juce::GridItem(space1));
+
             for (auto &control: tapControls) {
                 grid.items.add(juce::GridItem(*control));
             }
+
+            grid.items.add(juce::GridItem(space2));
+
+            for (auto &control: modeButtons) {
+                grid.items.add(juce::GridItem(*control));
+            }
+
             grid.performLayout(getLocalBounds());
         }
     };

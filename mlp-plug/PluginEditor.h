@@ -67,6 +67,8 @@ private:
                                 break;
                             case LayerOutputFlagId::Silent:
                                 break;
+                            case LayerOutputFlagId::Active:
+                                break;
                             case LayerOutputFlagId::Stopped:
                                 break;
                             case LayerOutputFlagId::Clearing:

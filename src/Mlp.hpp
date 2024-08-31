@@ -69,6 +69,7 @@ namespace mlp {
         };
 
         enum class IndexParamId : int {
+            Mode,
             SelectLayer,
             ResetLayer,
             LoopStartFrame,
@@ -78,9 +79,10 @@ namespace mlp {
         };
 
         static constexpr char IndexParamIdLabel[static_cast<int>(IndexParamId::Count)][16] = {
+                "MODE",
                 "SELECT",
                 "RESET",
-                "STARTPOS=",
+                "STARTPOS",
                 "ENDPOS",
                 "RESETPOS"
         };
@@ -255,6 +257,9 @@ namespace mlp {
             ParamChangeRequest<IndexParamId, unsigned long int> indexParamChangeRequest{};
             while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
+                    case IndexParamId::Mode:
+                        kernel.SetMode(static_cast<LayerBehaviorModeId>(indexParamChangeRequest.value));
+                        break;
                     case IndexParamId::SelectLayer:
                         kernel.SetCurrentLayer((unsigned int) indexParamChangeRequest.value);
                         break;
