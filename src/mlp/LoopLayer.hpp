@@ -94,30 +94,6 @@ namespace mlp {
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
-//        void SetWriteActive(bool active) {
-//            if (active) {
-//                writeSwitch.Open();
-//            } else {
-//                writeSwitch.Close();
-//            }
-//        }
-//
-//        void SetReadActive(bool active) {
-//            if (active) {
-//                readSwitch.Open();
-//            } else {
-//                readSwitch.Close();
-//            }
-//        }
-//
-//        void SetClearActive(bool active) {
-//            if (active) {
-//                clearSwitch.Open();
-//            } else {
-//                clearSwitch.Close();
-//            }
-//        }
-
         bool ToggleWrite() {
             return writeSwitch.Toggle();
         }
@@ -228,7 +204,8 @@ namespace mlp {
             // this is happening sometimes when the layer is stopped
             ///... i don't think anything too terrible will happen:
             if (lastPhasorIndex == currentPhasorIndex) {
-                currentPhasorIndex = lastPhasorIndex ^ 1;
+                std::cerr << "[LoopLayer] lastPhasorIndex == currentPhasorIndex" << std::endl;
+                lastPhasorIndex = currentPhasorIndex ^ 1;
             }
 
             phasor[lastPhasorIndex].Advance();
@@ -279,7 +256,7 @@ namespace mlp {
         }
 
         void Resume() {
-            for (unsigned int i=0; i<2; ++i) {
+                for (unsigned int i=0; i<2; ++i) {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;
