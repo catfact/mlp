@@ -200,13 +200,7 @@ namespace mlp {
             }
             clearSwitch.Process();
 
-            // assert(lastPhasorIndex != currentPhasorIndex);
-            // this is happening sometimes when the layer is stopped
-            ///... i don't think anything too terrible will happen:
-            if (lastPhasorIndex == currentPhasorIndex) {
-                std::cerr << "[LoopLayer] lastPhasorIndex == currentPhasorIndex" << std::endl;
-                lastPhasorIndex = currentPhasorIndex ^ 1;
-            }
+            assert(lastPhasorIndex != currentPhasorIndex);
 
             phasor[lastPhasorIndex].Advance();
             auto result = phasor[currentPhasorIndex].Advance();
@@ -260,10 +254,14 @@ namespace mlp {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;
+                    if (lastPhasorIndex == currentPhasorIndex) {
+                        lastPhasorIndex = currentPhasorIndex ^ 1;
+                    }
                     thePhasor.Reset(pauseFrame);
                     return;
                 }
             }
+
             // shouldn't really get here
             std::cerr << "[LoopLayer] resume failed - already playing + in a crossfade?" << std::endl;
         }
