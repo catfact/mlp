@@ -55,7 +55,7 @@ class MlpGui : public juce::Component {
                   tapIndex(aTapIndex) {
             setButtonText(label);
             onClick = [this] {
-                std::cout << "TapControl::onClick; tap = " << tapIndex << std::endl;
+                // std::cout << "TapControl::onClick; tap = " << tapIndex << std::endl;
                 if (output) {
                     output->SendTap(static_cast<mlp::Mlp::TapId>(tapIndex));
                 }
@@ -76,8 +76,8 @@ class MlpGui : public juce::Component {
             setToggleable(true);
             setClickingTogglesState(true);
             onClick = [this] {
-                std::cout << "LayerToggleControl::onClick; layer = " << layerIndex << ", toggle = " << toggleIndex
-                          << ", state = " << (getToggleState() ? "ON" : "OFF") << std::endl;
+                // std::cout << "LayerToggleControl::onClick; layer = " << layerIndex << ", toggle = " << toggleIndex
+                //           << ", state = " << (getToggleState() ? "ON" : "OFF") << std::endl;
                 if (output) {
                     output->SendIndexBool(static_cast<mlp::Mlp::IndexBoolParamId>(toggleIndex),
                                           (unsigned int) layerIndex,
@@ -102,8 +102,8 @@ class MlpGui : public juce::Component {
             setRange(0.0, 1.0, 0.001);
             //setValue(mlp.GetLayerParameter(layerIndex, parameterIndex));
             onValueChange = [=] {
-                std::cout << "LayerParameterControl::onValueChange; layer = " << layerIndex << ", parameter = "
-                          << parameterIndex << "(" << aLabel << "), value = " << getValue() << std::endl;
+                // std::cout << "LayerParameterControl::onValueChange; layer = " << layerIndex << ", parameter = "
+                //          << parameterIndex << "(" << aLabel << "), value = " << getValue() << std::endl;
 
                 if (output) {
                     output->SendIndexFloat(static_cast<mlp::Mlp::IndexFloatParamId>(parameterIndex),
@@ -162,7 +162,7 @@ class MlpGui : public juce::Component {
                 but->setClickingTogglesState(true);
                 but->setToggleable(true);
                 but->onClick = [mode] {
-                    std::cout << "GlobalControlGroup::modeButton::onClick; mode = " << (int)mode << std::endl;
+                    // std::cout << "GlobalControlGroup::modeButton::onClick; mode = " << (int)mode << std::endl;
                     if (output) {
                         output->SendIndex(mlp::Mlp::IndexParamId::Mode, static_cast<unsigned int>(mode));
                     }

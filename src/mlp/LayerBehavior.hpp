@@ -19,6 +19,8 @@ namespace mlp {
         Resume,
         StoreTrigger,
         StoreReset,
+        EnableLoop,
+        DisableLoop,
         NUM_ACTIONS
     };
 
@@ -35,7 +37,6 @@ namespace mlp {
 
         std::array<std::function<void()>, static_cast<size_t>(LayerActionId::NUM_ACTIONS)> actions;
 
-        bool *loopEnabled{nullptr};
         bool isInner;
         bool isOuter;
 
@@ -48,7 +49,8 @@ namespace mlp {
             actions[static_cast<size_t>(LayerActionId::Resume)] = [layer]() { layer->Resume(); };
             actions[static_cast<size_t>(LayerActionId::StoreTrigger)] = [layer]() { layer->StoreTrigger(); };
             actions[static_cast<size_t>(LayerActionId::StoreReset)] = [layer]() { layer->StoreReset(); };
-            loopEnabled = &layer->loopEnabled;
+            actions[static_cast<size_t>(LayerActionId::EnableLoop)] = [layer]() { layer->SetLoopEnabled(true); };
+            actions[static_cast<size_t>(LayerActionId::DisableLoop)] = [layer]() { layer->SetLoopEnabled(false); };
         }
 
         void DoAction(LayerActionId id) {
@@ -72,6 +74,12 @@ namespace mlp {
                         break;
                     case LayerActionId::Restart:
                         outputs->flags.Set(LayerOutputFlagId::Restarted);
+                        break;
+                    case LayerActionId::EnableLoop:
+                        outputs->flags.Set(LayerOutputFlagId::Opened);
+                        break;
+                    case LayerActionId::DisableLoop:
+                        outputs->flags.Set(LayerOutputFlagId::Closed);
                         break;
                     case LayerActionId::NUM_ACTIONS:
                     default:
@@ -184,18 +192,24 @@ namespace mlp {
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
                              if (!thisLayer->isInner) {
-                                 std::cout << "insert: open loop, pausing layer below" << std::endl;
+                                 // std::cout << "insert: open loop, not inner: pause layer below" << std::endl;
                                  layerBelow->DoAction(LayerActionId::StoreTrigger);
                                  layerBelow->DoAction(LayerActionId::Pause);
+                                 // std::cout << "insert: open loop, not inner: disable loop on this layer" << std::endl;
+                                 thisLayer->DoAction(LayerActionId::DisableLoop);
+                             } else {
+                                    // std::cout << "insert: open loop, inner: no special action" << std::endl;
                              }
                          });
                 behavior.SetAction
                         (LayerConditionId::CloseLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             std::cout << "insert: close loop, resuming layer below" << std::endl;
                              if (!thisLayer->isInner) {
+                                 // std::cout << "insert: close loop, not inner: resuming layer below" << std::endl;
                                  layerBelow->DoAction(LayerActionId::Resume);
+                             } else {
+                                 // std::cout << "insert: close loop, inner; no special action" << std::endl;
                              }
                          });
                 behavior.SetAction
@@ -203,8 +217,10 @@ namespace mlp {
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
                              if (!thisLayer->isInner) {
-                                 std::cout << "insert: wrapped, resume layer below" << std::endl;
+                                 // std::cout << "insert: wrapped, resume layer below" << std::endl;
                                  layerBelow->DoAction(LayerActionId::Resume);
+                             } else {
+                                 // std::cout << "insert: wrapped, inner: no special action" << std::endl;
                              }
                          });
                 behavior.SetAction
@@ -212,11 +228,12 @@ namespace mlp {
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerBelow;
                              if (!thisLayer->isOuter) {
-                                 std::cout << "insert: trigger, reset layer above, pause this layer" << std::endl;
-                                 layerAbove->DoAction(LayerActionId::Reset);
+                                 // std::cout << "insert: trigger, reset layer above, pause this layer" << std::endl;
+                                 layerAbove->DoAction(LayerActionId::Restart);
                                  thisLayer->DoAction(LayerActionId::Pause);
+                             } else {
+                                 // std::cout << "insert: trigger, outer: no special action" << std::endl;
                              }
-
                          });
                 break;
 

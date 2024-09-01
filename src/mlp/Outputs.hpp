@@ -28,6 +28,8 @@ namespace mlp {
         NotReading,
         Opened,
         Closed,
+        LoopEnabled,
+        LoopDisabled,
         Count
     };
 
@@ -52,7 +54,9 @@ namespace mlp {
         "Reading",
         "NotReading",
         "Opened",
-        "Closed"
+        "Closed",
+        "LoopEnabled",
+        "LoopDisabled"
     };
 
 

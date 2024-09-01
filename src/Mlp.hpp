@@ -204,6 +204,7 @@ namespace mlp {
                 kernel.FinalizeOutputs();
                 for (unsigned int i = 0; i < numLoopLayers; ++i) {
                     if (outputsData.layers[i].flags.Any()) {
+                        // std::cout << "enqueuing layer output flags; layer: " << i << std::endl;
                         outputsQ.layerFlagsQ.enqueue({i, outputsData.layers[i].flags});
                     }
                 }
@@ -369,7 +370,10 @@ namespace mlp {
                                             indexBoolParamChangeRequest.value.value);
                         break;
                     case IndexBoolParamId::LayerLoopEnabled:
-                        kernel.SetLoopEnabled(indexBoolParamChangeRequest.value.value);
+                        kernel.SetLoopEnabled(
+                                /// FIXME: weird that the arguments are reversed on this one
+                                indexBoolParamChangeRequest.value.value,
+                                static_cast<int>(indexBoolParamChangeRequest.value.index));
                         break;
                     default:
                         break;

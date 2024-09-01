@@ -33,12 +33,12 @@ private:
             auto &layerFlagsQ = mlp.GetLayerFlagsQ();
             LayerFlagsMessageData flagsData{};
             while (layerFlagsQ.try_dequeue(flagsData)) {
-                //std::cout << "layer " << flagsData.layer << ": ";
+                std::cout << "layer " << flagsData.layer << ": ";
 
                 for (int i = 0; i < static_cast<int>(LayerOutputFlagId::Count); ++i) {
                     auto flag = static_cast<LayerOutputFlagId>(i);
                     if (flagsData.flags.Test(flag)) {
-                        //std::cout << LayerOutputFlagLabel[i] << ", ";
+                        std::cout << LayerOutputFlagLabel[i] << ", ";
 
                         gui.AddLogLine(flagsData.layer, LayerOutputFlagLabel[i]);
 
@@ -94,6 +94,12 @@ private:
                             case LayerOutputFlagId::Closed:
                                 break;
                             case LayerOutputFlagId::Count:
+                                break;
+                            case LayerOutputFlagId::LoopEnabled:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, true);
+                                break;
+                            case LayerOutputFlagId::LoopDisabled:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, false);
                                 break;
                         }
 
