@@ -14,6 +14,7 @@
 
 #include "Mlp.hpp"
 #include "mlp/Constants.hpp"
+#include "mlp/LayerBehavior.hpp"
 #include "MlpLookAndFeel.hpp"
 #include "MlpGuiIo.hpp"
 
@@ -155,13 +156,13 @@ class MlpGui : public juce::Component {
                 addAndMakeVisible(tapControls.back().get());
             }
 
-            auto addModeBut = [this](const std::string &label, int mode) {
+            auto addModeBut = [this](const std::string &label, mlp::LayerBehaviorModeId mode) {
                 auto but = std::make_unique<juce::TextButton>(label);
                 but->setRadioGroupId(1);
                 but->setClickingTogglesState(true);
                 but->setToggleable(true);
                 but->onClick = [mode] {
-                    std::cout << "GlobalControlGroup::modeButton::onClick; mode = " << mode << std::endl;
+                    std::cout << "GlobalControlGroup::modeButton::onClick; mode = " << (int)mode << std::endl;
                     if (output) {
                         output->SendIndex(mlp::Mlp::IndexParamId::Mode, static_cast<unsigned int>(mode));
                     }
@@ -170,9 +171,9 @@ class MlpGui : public juce::Component {
                 modeButtons.push_back(std::move(but));
             };
 
-            addModeBut("ASYNC", 0);
-            addModeBut("MULTIPLY", 1);
-            addModeBut("INSERT", 2);
+            addModeBut("ASYNC", mlp::LayerBehaviorModeId::ASYNC);
+            addModeBut("MULTIPLY", mlp::LayerBehaviorModeId::MULTIPLY_UNQUANTIZED);
+            addModeBut("INSERT", mlp::LayerBehaviorModeId::INSERT_UNQUANTIZED);
 
             addAndMakeVisible(space1);
             addAndMakeVisible(space2);

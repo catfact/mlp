@@ -88,7 +88,9 @@ namespace mlp {
 
             loopEndFrame = newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
-            newPhasor.Reset(loopStartFrame);
+            if (loopEnabled) {
+                newPhasor.Reset(loopStartFrame);
+            }
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
 
@@ -222,7 +224,12 @@ namespace mlp {
             }
             clearSwitch.Process();
 
-            assert(lastPhasorIndex != currentPhasorIndex);
+            // assert(lastPhasorIndex != currentPhasorIndex);
+            // this is happening sometimes when the layer is stopped
+            ///... i don't think anything too terrible will happen:
+            if (lastPhasorIndex == currentPhasorIndex) {
+                currentPhasorIndex = lastPhasorIndex ^ 1;
+            }
 
             phasor[lastPhasorIndex].Advance();
             auto result = phasor[currentPhasorIndex].Advance();
@@ -314,6 +321,9 @@ namespace mlp {
             }
             if (triggerFrame < loopStartFrame) {
                 triggerFrame = loopStartFrame;
+            }
+            for (auto &thePhasor: phasor) {
+                thePhasor.triggerFrame = triggerFrame;
             }
         }
 

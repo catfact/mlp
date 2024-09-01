@@ -68,7 +68,7 @@ namespace mlp {
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
                 layerBehavior[i].thisLayer = &layerInterface[i];
                 layerBehavior[i].layerBelow = &layerInterface[(i - 1) % numLoopLayers];
-                layerBehavior[i].layerAbove = &layerInterface[(i + 2) % numLoopLayers];
+                layerBehavior[i].layerAbove = &layerInterface[(i + 1) % numLoopLayers];
             }
             /// initialize modes
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
