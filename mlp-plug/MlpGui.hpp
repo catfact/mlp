@@ -222,6 +222,8 @@ class MlpGui : public juce::Component {
     //----------------------------------------------------------------------------------
     struct LayerControlGroup : public juce::Component {
 
+        mlp::frame_t loopEndFrame{mlp::bufferFrames};
+
         template<typename ControlType, unsigned int numWidgets, bool isVertical = false, int px = -1>
         struct LayerWidgetControlGroup : public juce::Component {
             std::vector<std::unique_ptr<ControlType>> controls;
@@ -292,10 +294,30 @@ class MlpGui : public juce::Component {
             }
         };
 
+        struct LayerPositionDislpay: juce::Component {
+            // unit-scaled positions
+            float startPos, endPos;
+            void paint(juce::Graphics &g) override {
+                g.fillAll(juce::Colours::black);
+                if (startPos < endPos) {
+                    g.setColour(juce::Colours::white);
+                    //g.fillRect(startPos * getWidth(), 0, (endPos - startPos) * getWidth(), getHeight());
+                    g.fillRect(startPos * getWidth(), 0.f, (endPos - startPos) * getWidth(), (float)getHeight());
+                } else {
+                    // fill from zero to start
+                    g.fillRect(0.f, 0.f, startPos * getWidth(), (float)getHeight());
+                    // fill from end to one
+                    g.fillRect(endPos * getWidth(), 0.f, (1.f - endPos) * getWidth(), (float)getHeight());
+                }
+            }
+
+        };
+
 
         std::unique_ptr<juce::TextButton> selectedToggle;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
         std::unique_ptr<LayerParameterControlGroup> parameterControlGroup;
+        std::unique_ptr<LayerPositionDislpay> positionDisplay;
         std::unique_ptr<LayerOutputLog> outputLog;
 
 
@@ -332,12 +354,14 @@ class MlpGui : public juce::Component {
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
                     Track(Fr(1)),
+                    Track(Px(buttonHeight)),
                     Track(Fr(2)),
             };
 
             grid.items.add(juce::GridItem(*selectedToggle));
             grid.items.add(juce::GridItem(*toggleControlGroup));
             grid.items.add(juce::GridItem(*parameterControlGroup));
+            grid.items.add(juce::GridItem(*positionDisplay));
             grid.items.add(juce::GridItem(*outputLog));
 
             grid.performLayout(getLocalBounds());
@@ -429,5 +453,9 @@ public:
 
     void SetOutput(MlpGuiOutput *aOutput) {
         output = aOutput;
+    }
+
+    void SetLayerLoopEndFrame(unsigned int aLayerIndex, mlp::frame_t aFrame) {
+        layerControlStack->layerControlGroups[aLayerIndex]->loopEndFrame = aFrame;
     }
 };

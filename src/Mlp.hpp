@@ -414,6 +414,9 @@ namespace mlp {
             paramChangeQ.indexBoolQ.enqueue({id, {index, value}});
         }
 
+        frame_t GetLoopEndFrame(unsigned int aLayerIndex) {
+            return kernel.GetLoopEndFrame(aLayerIndex);
+        }
 
     };
 }

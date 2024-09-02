@@ -92,6 +92,7 @@ private:
                             case LayerOutputFlagId::Opened:
                                 break;
                             case LayerOutputFlagId::Closed:
+                                gui.SetLayerLoopEndFrame(flagsData.layer, mlp.GetLoopEndFrame((unsigned int)flagsData.layer));
                                 break;
                             case LayerOutputFlagId::Count:
                                 break;

@@ -86,6 +86,11 @@ namespace mlp {
         frame_t positionRange[2];
     };
 
+    struct LayerLoopEndMessageData {
+        unsigned int layer;
+        frame_t loopEnd;
+    };
+
 
     static const OutputsData defaultOutputsData{};
 

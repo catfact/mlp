@@ -381,5 +381,9 @@ namespace mlp {
                 SetLayerBehaviorMode(layerBehavior[i], mode);
             }
         }
+
+        frame_t GetLoopEndFrame(unsigned int aLayerIndex) const {
+            return layer[aLayerIndex].loopEndFrame;
+        }
     };
 }
