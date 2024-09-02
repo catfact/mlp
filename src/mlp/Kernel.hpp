@@ -375,6 +375,11 @@ namespace mlp {
             }
         }
 
+        void SetLayerMode(unsigned int aLayerIndex, LayerBehaviorModeId mode) {
+            SetLayerBehaviorMode(layerBehavior[aLayerIndex], mode);
+        }
+
+
         void SetMode(LayerBehaviorModeId mode) {
             /// set for all layers!
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
@@ -382,8 +387,13 @@ namespace mlp {
             }
         }
 
+
         frame_t GetLoopEndFrame(unsigned int aLayerIndex) const {
             return layer[aLayerIndex].loopEndFrame;
+        }
+
+        frame_t GetFadeFrames(unsigned int aLayerIndex) const {
+            return static_cast<unsigned int>(1.f / layer[aLayerIndex].fadeIncrement);
         }
     };
 }

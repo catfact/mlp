@@ -138,13 +138,20 @@ namespace mlp {
     enum class LayerBehaviorModeId {
         ASYNC,
         MULTIPLY_UNQUANTIZED,
-        MULTIPLY_QUANTIZED,
-        MULTIPLY_QUANTIZED_START,
-        MULTIPLY_QUANTIZED_END,
+//        MULTIPLY_QUANTIZED,
+//        MULTIPLY_QUANTIZED_START,
+//        MULTIPLY_QUANTIZED_END,
         INSERT_UNQUANTIZED,
-        INSERT_QUANTIZED,
-        INSERT_QUANTIZED_START,
-        INSERT_QUANTIZED_END,
+//        INSERT_QUANTIZED,
+//        INSERT_QUANTIZED_START,
+//        INSERT_QUANTIZED_END,
+        COUNT,
+    };
+
+    static constexpr char LayerBehaviorModeIdLabel[static_cast<int>(LayerBehaviorModeId::COUNT)][16] = {
+        "ASYNC",
+        "MULT",
+        "INSERT",
     };
 
     //------------------------------------------------
@@ -159,7 +166,10 @@ namespace mlp {
                         (LayerConditionId::OpenLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             if (!thisLayer->isInner && !layerBelow->isOuter) {
+//                             if (!thisLayer->isInner && !layerBelow->isOuter) {
+//                                 layerBelow->DoAction(LayerActionId::StoreReset);
+//                             }
+                             if (!thisLayer->isInner) {
                                  layerBelow->DoAction(LayerActionId::StoreReset);
                              }
                          });
@@ -167,7 +177,7 @@ namespace mlp {
                         (LayerConditionId::CloseLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             if (!thisLayer->isInner && !layerBelow->isOuter) {
+                             if (!thisLayer->isInner) { // && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });
@@ -176,17 +186,13 @@ namespace mlp {
                         (LayerConditionId::Wrap,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             if (!thisLayer->isInner && !layerBelow->isOuter) {
+                             if (!thisLayer->isInner) { // && !layerBelow->isOuter) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });
                 break;
 
             case LayerBehaviorModeId::INSERT_UNQUANTIZED:
-                /// totally untested
-                /// TODO: this needs to send a client event with the loop disable
-                /// and actually we don't want to do this here, only when... opening a loop above?
-
                 behavior.SetAction
                         (LayerConditionId::OpenLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
@@ -238,12 +244,13 @@ namespace mlp {
                 break;
 
 
-            case LayerBehaviorModeId::MULTIPLY_QUANTIZED:
-            case LayerBehaviorModeId::MULTIPLY_QUANTIZED_START:
-            case LayerBehaviorModeId::MULTIPLY_QUANTIZED_END:
-            case LayerBehaviorModeId::INSERT_QUANTIZED:
-            case LayerBehaviorModeId::INSERT_QUANTIZED_START:
-            case LayerBehaviorModeId::INSERT_QUANTIZED_END:
+//            case LayerBehaviorModeId::MULTIPLY_QUANTIZED:
+//            case LayerBehaviorModeId::MULTIPLY_QUANTIZED_START:
+//            case LayerBehaviorModeId::MULTIPLY_QUANTIZED_END:
+//            case LayerBehaviorModeId::INSERT_QUANTIZED:
+//            case LayerBehaviorModeId::INSERT_QUANTIZED_START:
+//            case LayerBehaviorModeId::INSERT_QUANTIZED_END:
+            case LayerBehaviorModeId::COUNT:
             default:
                 // NYI mode
                 break;

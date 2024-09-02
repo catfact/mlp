@@ -140,6 +140,10 @@ private:
             mlp.IndexBoolParamChange(id, index, value);
         }
 
+        void SendIndexIndex(mlp::Mlp::IndexIndexParamId id, unsigned int index, unsigned int indexindex) override {
+            mlp.IndexIndexParamChange(id, index, indexindex);
+        }
+
         void SendIndexFloat(mlp::Mlp::IndexFloatParamId id, unsigned int index, float value) override {
             mlp.IndexFloatParamChange(id, index, value);
         }

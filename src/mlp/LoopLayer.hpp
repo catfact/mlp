@@ -50,6 +50,8 @@ namespace mlp {
         // frame at which we paused / will resume
         frame_t pauseFrame{0};
 
+        float fadeIncrement;
+
         /// levels
         float playbackLevel{1.f};
         float recordLevel{1.f};
@@ -321,6 +323,7 @@ namespace mlp {
         }
 
         void SetFadeIncrement(float increment) {
+            fadeIncrement = increment;
             for (auto &thePhasor: phasor) {
                 thePhasor.fadeIncrement = increment;
             }
