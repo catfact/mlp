@@ -112,9 +112,7 @@ private:
             auto &layerPositionQ = mlp.GetLayerPositionQ();
             LayerPositionMessageData posData{};
             while (layerPositionQ.try_dequeue(posData)) {
-                /// TODO: show the positions somewhere
-//                std::cout << "layer position: " << posData.layer << "; "
-//                          << posData.positionRange[0] << " - " << posData.positionRange[1] << std::endl;
+                gui.SetLayerPosition(posData.layer, posData.positionRange[0], posData.positionRange[1]);
             }
         }
 

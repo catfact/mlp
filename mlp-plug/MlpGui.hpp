@@ -223,6 +223,8 @@ class MlpGui : public juce::Component {
     struct LayerControlGroup : public juce::Component {
 
         mlp::frame_t loopEndFrame{mlp::bufferFrames};
+        mlp::frame_t initialPosition{0};
+        mlp::frame_t finalPosition{0};
 
         template<typename ControlType, unsigned int numWidgets, bool isVertical = false, int px = -1>
         struct LayerWidgetControlGroup : public juce::Component {
@@ -330,12 +332,23 @@ class MlpGui : public juce::Component {
 
             toggleControlGroup = std::make_unique<LayerToggleControlGroup>(layerIndex);
             parameterControlGroup = std::make_unique<LayerParameterControlGroup>(layerIndex);
+            positionDisplay = std::make_unique<LayerPositionDislpay>();
             outputLog = std::make_unique<LayerOutputLog>();
 
             addAndMakeVisible(selectedToggle.get());
             addAndMakeVisible(toggleControlGroup.get());
             addAndMakeVisible(parameterControlGroup.get());
+            addAndMakeVisible(positionDisplay.get());
             addAndMakeVisible(outputLog.get());
+        }
+
+        void SetLoopEndFrame(mlp::frame_t aFrame) {
+            loopEndFrame = aFrame;
+            if (positionDisplay) {
+                positionDisplay->startPos = (float)initialPosition / (float)loopEndFrame;
+                positionDisplay->endPos = (float)finalPosition / (float)loopEndFrame;
+                positionDisplay->repaint();
+            }
         }
 
         void resized() override {
@@ -354,8 +367,8 @@ class MlpGui : public juce::Component {
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
                     Track(Fr(1)),
-                    Track(Px(buttonHeight)),
-                    Track(Fr(2)),
+                    Track(Px(buttonHeight/2)),
+                    Track(Fr(1)),
             };
 
             grid.items.add(juce::GridItem(*selectedToggle));
@@ -455,7 +468,18 @@ public:
         output = aOutput;
     }
 
-    void SetLayerLoopEndFrame(unsigned int aLayerIndex, mlp::frame_t aFrame) {
-        layerControlStack->layerControlGroups[aLayerIndex]->loopEndFrame = aFrame;
+    void SetLayerLoopEndFrame(unsigned int layerIndex, mlp::frame_t frame) {
+        layerControlStack->layerControlGroups[layerIndex]->SetLoopEndFrame(frame);
+    }
+
+    void SetLayerPosition(unsigned int layerIndex, mlp::frame_t start, mlp::frame_t end)
+    {
+        auto &layer = layerControlStack->layerControlGroups[layerIndex];
+        //std::cout << "setLayerPosition: layer " << layerIndex << ", start = " << start << ", end = " << end << std::endl;
+        layer->initialPosition = start;
+        layer->finalPosition = end;
+        layer->positionDisplay->startPos = (float)start / (float)layer->loopEndFrame;
+        layer->positionDisplay->endPos = (float)end / (float)layer->loopEndFrame;
+        layer->positionDisplay->repaint();
     }
 };

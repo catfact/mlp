@@ -207,6 +207,8 @@ namespace mlp {
                         // std::cout << "enqueuing layer output flags; layer: " << i << std::endl;
                         outputsQ.layerFlagsQ.enqueue({i, outputsData.layers[i].flags});
                     }
+                    outputsQ.layerPositionQ.enqueue(
+                            {i, {outputsData.layers[i].positionRange[0], outputsData.layers[i].positionRange[1]}});
                 }
                 kernel.InitializeOutputs(&outputsData);
             }
@@ -321,13 +323,13 @@ namespace mlp {
 /// FIXME: need a more formal/ explicit way of specifying parameter range mappings
                         tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
                         kernel.SetFadeTime(tmpValue,
-                                                (int) indexFloatParamChangeRequest.value.index);
+                                           (int) indexFloatParamChangeRequest.value.index);
 
                     case IndexFloatParamId::LayerSwitchTime:
 /// FIXME: need a more formal/ explicit way of specifying parameter range mappings
                         tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
                         kernel.SetSwitchTime(tmpValue,
-                                           (int) indexFloatParamChangeRequest.value.index);
+                                             (int) indexFloatParamChangeRequest.value.index);
 
                         break;
                     default:
