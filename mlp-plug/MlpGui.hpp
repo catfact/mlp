@@ -23,8 +23,6 @@ class MlpGui : public juce::Component {
 //==============================================================================
 //=== I/O
 
-    // MlpGuiOutput *output = nullptr;
-
     /// FIXME: this is lame, but i don't to deal with passing the output pointer down to all child widgets
     /// for now, making the output interface into a global variable :(
     static MlpGuiOutput *output;
@@ -166,7 +164,7 @@ class MlpGui : public juce::Component {
             };
 
             addModeBut("ASYNC");
-            addModeBut("MULTIPLY");
+            addModeBut("MULT");
             addModeBut("INSERT");
 
             addAndMakeVisible(space1);
@@ -268,6 +266,31 @@ class MlpGui : public juce::Component {
 
 
         //----------------------------------------------------------------------------------
+        struct LayerResetControlGroup
+                : public LayerWidgetControlGroup<juce::TextButton, 2> {
+            juce::TextButton *resetButton;
+            juce::TextButton *restartButton;
+            explicit LayerResetControlGroup(int layerIndex) {
+                controls.push_back(std::make_unique<juce::TextButton>("RESET"));
+                resetButton = controls.back().get();
+                addAndMakeVisible(resetButton);
+                resetButton->onClick = [layerIndex] {
+                    if (output) {
+                        output->SendIndex(mlp::Mlp::IndexParamId::ResetLayer, static_cast<unsigned int>(layerIndex));
+                    }
+                };
+                controls.push_back(std::make_unique<juce::TextButton>("RESTART"));
+                restartButton = controls.back().get();
+                addAndMakeVisible(restartButton);
+                restartButton->onClick = [layerIndex] {
+                    if (output) {
+                        output->SendIndex(mlp::Mlp::IndexParamId::RestartLayer, static_cast<unsigned int>(layerIndex));
+                    }
+                };
+            }
+        };
+
+        //----------------------------------------------------------------------------------
         struct LayerModeControlGroup
                 : public LayerWidgetControlGroup<juce::TextButton, (size_t) mlp::LayerBehaviorModeId::COUNT> {
             explicit LayerModeControlGroup(int layerIndex) {
@@ -347,10 +370,10 @@ class MlpGui : public juce::Component {
                     g.fillRect(x + ins, ins, w, (float) hh);
                 }
             }
-
         };
 
         std::unique_ptr<juce::TextButton> selectedToggle;
+        std::unique_ptr<LayerResetControlGroup> resetControlGroup;
         std::unique_ptr<LayerModeControlGroup> modeControlGroup;
         std::unique_ptr<LayerToggleControlGroup> toggleControlGroup;
         std::unique_ptr<LayerParameterControlGroup> parameterControlGroup;
@@ -361,8 +384,15 @@ class MlpGui : public juce::Component {
         explicit LayerControlGroup(int layerIndex) {
             selectedToggle = std::make_unique<juce::TextButton>("SELECTED");
             selectedToggle->setToggleable(true);
-            // FIXME: for now, we don't have explicit layer selection!
             selectedToggle->setClickingTogglesState(false);
+            selectedToggle->onClick = [this, layerIndex]() {
+                if (output) {
+                    selectedToggle->setToggleState(true, juce::NotificationType::dontSendNotification);
+                    output->SendIndex(mlp::Mlp::IndexParamId::SelectLayer, static_cast<unsigned int>(layerIndex));
+                    /// ... will this work? i think selected-toggles on other layers will get their state updated by output flags
+                }
+            };
+            resetControlGroup = std::make_unique<LayerResetControlGroup>(layerIndex);
             modeControlGroup = std::make_unique<LayerModeControlGroup>(layerIndex);
             toggleControlGroup = std::make_unique<LayerToggleControlGroup>(layerIndex);
             parameterControlGroup = std::make_unique<LayerParameterControlGroup>(layerIndex);
@@ -370,6 +400,7 @@ class MlpGui : public juce::Component {
             outputLog = std::make_unique<LayerOutputLog>();
 
             addAndMakeVisible(selectedToggle.get());
+            addAndMakeVisible(resetControlGroup.get());
             addAndMakeVisible(modeControlGroup.get());
             addAndMakeVisible(toggleControlGroup.get());
             addAndMakeVisible(parameterControlGroup.get());
@@ -402,12 +433,14 @@ class MlpGui : public juce::Component {
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
+                    Track(Px(buttonHeight)),
                     Track(Fr(1)),
                     Track(Px(buttonHeight / 2)),
                     Track(Fr(1)),
             };
 
             grid.items.add(juce::GridItem(*selectedToggle));
+            grid.items.add(juce::GridItem(*resetControlGroup));
             grid.items.add(juce::GridItem(*modeControlGroup));
             grid.items.add(juce::GridItem(*toggleControlGroup));
             grid.items.add(juce::GridItem(*parameterControlGroup));

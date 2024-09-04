@@ -72,6 +72,7 @@ namespace mlp {
             Mode,
             SelectLayer,
             ResetLayer,
+            RestartLayer,
             LoopStartFrame,
             LoopEndFrame,
             LoopResetFrame,
@@ -82,6 +83,7 @@ namespace mlp {
                 "MODE",
                 "SELECT",
                 "RESET",
+                "RESTART",
                 "STARTPOS",
                 "ENDPOS",
                 "RESETPOS"
@@ -270,6 +272,9 @@ namespace mlp {
                         break;
                     case IndexParamId::ResetLayer:
                         kernel.ResetLayer((int) indexParamChangeRequest.value);
+                        break;
+                    case IndexParamId::RestartLayer:
+                        kernel.RestartLayer((int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::LoopStartFrame:
                         kernel.SetLoopStartFrame(indexParamChangeRequest.value);

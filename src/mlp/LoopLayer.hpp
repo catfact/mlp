@@ -73,7 +73,7 @@ namespace mlp {
             state = LoopLayerState::SETTING;
             SetWrite(true);
 
-            //// FIXME: we are hitting some state where both phasors are active but shouldn't be
+            //// FIXME: we are hitting some state where both phasors are active while the layer is stopped
             // assert(phasor[currentPhasorIndex].isActive == false);
 
             phasor[currentPhasorIndex].Reset();

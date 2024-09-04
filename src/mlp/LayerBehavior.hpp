@@ -166,9 +166,6 @@ namespace mlp {
                         (LayerConditionId::OpenLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-//                             if (!thisLayer->isInner && !layerBelow->isOuter) {
-//                                 layerBelow->DoAction(LayerActionId::StoreReset);
-//                             }
                              if (!thisLayer->isInner) {
                                  layerBelow->DoAction(LayerActionId::StoreReset);
                              }
@@ -177,7 +174,7 @@ namespace mlp {
                         (LayerConditionId::CloseLoop,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             if (!thisLayer->isInner) { // && !layerBelow->isOuter) {
+                             if (!thisLayer->isInner) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });
@@ -186,7 +183,7 @@ namespace mlp {
                         (LayerConditionId::Wrap,
                          [](LayerInterface *thisLayer, LayerInterface *layerBelow, LayerInterface *layerAbove) {
                              (void) layerAbove;
-                             if (!thisLayer->isInner) { // && !layerBelow->isOuter) {
+                             if (!thisLayer->isInner) {
                                  layerBelow->DoAction(LayerActionId::Reset);
                              }
                          });

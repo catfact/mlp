@@ -375,6 +375,14 @@ namespace mlp {
             }
         }
 
+        void RestartLayer(int aLayerIndex = -1) {
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
+            if (layerIndex >= 0 && layerIndex < numLoopLayers) {
+                layer[layerIndex].Restart();
+                SetOutputLayerFlag(layerIndex, LayerOutputFlagId::Restarted);
+            }
+        }
+
         void SetLayerMode(unsigned int aLayerIndex, LayerBehaviorModeId mode) {
             SetLayerBehaviorMode(layerBehavior[aLayerIndex], mode);
         }
