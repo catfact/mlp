@@ -11,8 +11,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
           outputBuffer(initialBufferSize) {
 }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor() {
-}
+AudioPluginAudioProcessor::~AudioPluginAudioProcessor() = default;
 
 //==============================================================================
 const juce::String AudioPluginAudioProcessor::getName() const {

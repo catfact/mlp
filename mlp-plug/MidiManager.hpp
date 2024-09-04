@@ -1,7 +1,5 @@
 #pragma once
 
-//#include <juce_audio_devices/midi_io/juce_MidiInput.h>
-//#include <juce_audio_devices/midi_io/juce_MidiDevices.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 
 

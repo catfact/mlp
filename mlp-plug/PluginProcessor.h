@@ -5,7 +5,7 @@
 
 #include "MidiManager.hpp"
 #include "Mlp.hpp"
-
+#include "mlp/Weaver.hpp"
 
 //==============================================================================
 class AudioPluginAudioProcessor final :
@@ -64,8 +64,11 @@ public:
 
 private:
     mlp::Mlp mlp;
-    MidiManager midiManager;
 
+    // actually this is singleton
+    // mlp::Weaver weaver;
+
+    MidiManager midiManager;
 
     //// FIXME:
     /// rather bad hack here:
