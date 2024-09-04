@@ -2,10 +2,14 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+
+#include "MidiManager.hpp"
 #include "Mlp.hpp"
 
+
 //==============================================================================
-class AudioPluginAudioProcessor final : public juce::AudioProcessor {
+class AudioPluginAudioProcessor final :
+        public juce::AudioProcessor {
 public:
     friend class AudioPluginAudioProcessorEditor;
 
@@ -52,6 +56,7 @@ public:
 
     void changeProgramName(int index, const juce::String &newName) override;
 
+
     //==============================================================================
     void getStateInformation(juce::MemoryBlock &destData) override;
 
@@ -59,6 +64,9 @@ public:
 
 private:
     mlp::Mlp mlp;
+    MidiManager midiManager;
+
+
     //// FIXME:
     /// rather bad hack here:
     /// the processor assumes stereo interleaved I/O.

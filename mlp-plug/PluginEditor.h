@@ -24,7 +24,7 @@ private:
 
     public:
         EditorInput(mlp::Mlp &aMlp, MlpGui &aGui) : mlp(aMlp), gui(aGui) {
-            startTimerHz(120);
+            startTimerHz(1000);
         }
 
         void timerCallback() override {
