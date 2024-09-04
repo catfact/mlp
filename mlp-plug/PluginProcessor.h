@@ -64,10 +64,7 @@ public:
 
 private:
     mlp::Mlp mlp;
-
-    // actually this is singleton
-    // mlp::Weaver weaver;
-
+    mlp::Weaver* weaver;
     MidiManager midiManager;
 
     //// FIXME:

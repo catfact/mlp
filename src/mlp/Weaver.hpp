@@ -30,23 +30,23 @@ namespace mlp {
         std::map<const std::string, WrenHandle *> ffiClassHandles;
         static std::map<const std::string, std::map<const std::string, WrenForeignMethodFn>> ffiMethodFns;
 
-        static void ffiOutputBang(WrenVM *vm) {
+        static void FfiOutputBang(WrenVM *vm) {
             double a = wrenGetSlotDouble(vm, 1);
             double b = wrenGetSlotDouble(vm, 2);
             std::cout << "bang " << a << " " << b << std::endl;
         }
 
     public:
-        static Weaver *init(const char *scriptPath = nullptr) {
+        static Weaver *Init(const char *scriptPath = nullptr) {
             if (instance == nullptr) {
                 instance = new Weaver(scriptPath);
             }
             return instance;
         }
 
-        static void deinit() { delete instance; }
+        static void Deinit() { delete instance; }
 
-        static Weaver *getInstance() {
+        static Weaver *GetInstance() {
             if (instance == nullptr) {
                 /// if the VM wasn't initialized at construction,
                 /// it means there was no initial script data given,
@@ -59,8 +59,8 @@ namespace mlp {
 
     private:
         explicit Weaver(const char *scriptData = nullptr) {
-            config.errorFn = &errorFn;
-            config.writeFn = &writeFn;
+            config.errorFn = &ErrorFn;
+            config.writeFn = &WriteFn;
             config.bindForeignMethodFn = &bindForeignMethodFn;
 
 
@@ -70,7 +70,7 @@ namespace mlp {
             WrenInterpretResult result;
 
             // NB: FFI function pointers need to be set before running main!
-            ffiMethodFns["Output"]["bang(_,_)"] = &ffiOutputBang;
+            ffiMethodFns["Output"]["bang(_,_)"] = &FfiOutputBang;
 
             if (scriptData) {
                 result = wrenInterpret(vm, module, scriptData);
@@ -121,7 +121,7 @@ namespace mlp {
     public:
 
         ///--- API for calling wren from c++
-        void handleNoteOn(const uint8_t *data) {
+        void HandleNoteOn(const uint8_t *data) {
             std::cout << "note on: " << (int) data[0] << " " << (int) data[1] << std::endl;
             {
                 std::lock_guard<std::mutex> lock(vmLock);
@@ -137,7 +137,7 @@ namespace mlp {
             }
         }
 
-        void handleNoteOff(const uint8_t *data) {
+        void HandleNoteOff(const uint8_t *data) {
             std::cout << "note off: " << (int) data[0] << " " << (int) data[1] << std::endl;
             {
                 std::lock_guard<std::mutex> lock(vmLock);
@@ -153,13 +153,15 @@ namespace mlp {
         }
 
         ///--- wren bindings
-        static void writeFn(WrenVM *vm, const char *text) {
+        static void WriteFn(WrenVM *vm, const char *text) {
+            (void)vm;
             printf("%s", text);
         }
 
-        static void errorFn(WrenVM *vm, WrenErrorType errorType,
+        static void ErrorFn(WrenVM *vm, WrenErrorType errorType,
                             const char *module, const int line,
                             const char *msg) {
+            (void)vm;
             switch (errorType) {
                 case WREN_ERROR_COMPILE: {
                     printf("[%s line %d] [Error] %s\n", module, line, msg);
@@ -179,7 +181,7 @@ namespace mlp {
         static WrenForeignMethodFn bindForeignMethodFn(WrenVM *vm, const char *module,
                                                        const char *className, bool isStatic,
                                                        const char *signature) {
-
+            (void)vm;
             printf("bindForeignMethodFn: %s %s %s %s\n", module, className, isStatic ? "true" : "false", signature);
             if (!isStatic) {
                 std::cerr << "<ERROR> we only know how to bind wren static methods" << std::endl;

@@ -58,7 +58,7 @@ target_compile_definitions(mlp-plug
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
         JUCE_VST3_CAN_REPLACE_VST2=0)
 
-# juce_add_binary_data(AudioPluginData SOURCES ...)
+juce_add_binary_data(MlpBinaryData SOURCES ${CMAKE_CURRENT_LIST_DIR}/../resources/main.wren)
 
 target_include_directories(mlp-plug PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/../src
@@ -69,7 +69,7 @@ target_include_directories(mlp-plug PUBLIC
 
 target_link_libraries(mlp-plug
         PRIVATE
-        # AudioPluginData
+        MlpBinaryData
         juce::juce_audio_utils
         PUBLIC
         juce::juce_recommended_config_flags
