@@ -14,8 +14,6 @@ public:
 //        setColour(juce::TextButton::buttonColourId, juce::Colours::lightsteelblue);
 //        setColour(juce::TextButton::buttonOnColourId, juce::Colours::cornflowerblue);
 
-
-
         setColour(juce::ResizableWindow::backgroundColourId, juce::Colours::black);
         setColour(juce::Slider::thumbColourId, juce::Colours::grey);
         setColour(juce::Slider::trackColourId, juce::Colours::lightslategrey);
@@ -24,6 +22,8 @@ public:
         setColour(juce::TextButton::textColourOffId, juce::Colours::ghostwhite);
         setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
         setColour(juce::TextButton::buttonOnColourId, juce::Colours::ghostwhite);
+        setColour(juce::TextEditor::backgroundColourId, juce::Colours::black);
+        setColour(juce::TextEditor::textColourId, juce::Colours::ghostwhite);
 
         LookAndFeel::setDefaultLookAndFeel (this);
     }

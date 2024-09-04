@@ -33,12 +33,12 @@ private:
             auto &layerFlagsQ = mlp.GetLayerFlagsQ();
             LayerFlagsMessageData flagsData{};
             while (layerFlagsQ.try_dequeue(flagsData)) {
-                //std::cout << "layer " << flagsData.layer << ": ";
+                std::cout << "layer " << flagsData.layer << ": ";
 
                 for (int i = 0; i < static_cast<int>(LayerOutputFlagId::Count); ++i) {
                     auto flag = static_cast<LayerOutputFlagId>(i);
                     if (flagsData.flags.Test(flag)) {
-                        //std::cout << LayerOutputFlagLabel[i] << ", ";
+                        std::cout << LayerOutputFlagLabel[i] << ", ";
 
                         gui.AddLogLine(flagsData.layer, LayerOutputFlagLabel[i]);
 
@@ -67,6 +67,8 @@ private:
                                 break;
                             case LayerOutputFlagId::Silent:
                                 break;
+                            case LayerOutputFlagId::Active:
+                                break;
                             case LayerOutputFlagId::Stopped:
                                 break;
                             case LayerOutputFlagId::Clearing:
@@ -90,8 +92,15 @@ private:
                             case LayerOutputFlagId::Opened:
                                 break;
                             case LayerOutputFlagId::Closed:
+                                gui.SetLayerLoopEndFrame(flagsData.layer, mlp.GetLoopEndFrame((unsigned int)flagsData.layer));
                                 break;
                             case LayerOutputFlagId::Count:
+                                break;
+                            case LayerOutputFlagId::LoopEnabled:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, true);
+                                break;
+                            case LayerOutputFlagId::LoopDisabled:
+                                gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, false);
                                 break;
                         }
 
@@ -103,9 +112,7 @@ private:
             auto &layerPositionQ = mlp.GetLayerPositionQ();
             LayerPositionMessageData posData{};
             while (layerPositionQ.try_dequeue(posData)) {
-                /// TODO: show the positions somewhere
-//                std::cout << "layer position: " << posData.layer << "; "
-//                          << posData.positionRange[0] << " - " << posData.positionRange[1] << std::endl;
+                gui.SetLayerPosition(posData.layer, posData.positionRange[0], posData.positionRange[1]);
             }
         }
 
@@ -131,6 +138,10 @@ private:
 
         void SendIndexBool(mlp::Mlp::IndexBoolParamId id, unsigned int index, bool value) override {
             mlp.IndexBoolParamChange(id, index, value);
+        }
+
+        void SendIndexIndex(mlp::Mlp::IndexIndexParamId id, unsigned int index, unsigned int indexindex) override {
+            mlp.IndexIndexParamChange(id, index, indexindex);
         }
 
         void SendIndexFloat(mlp::Mlp::IndexFloatParamId id, unsigned int index, float value) override {

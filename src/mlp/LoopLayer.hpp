@@ -16,7 +16,7 @@ namespace mlp {
     enum class LoopLayerState {
         STOPPED,
         SETTING,
-        LOOPING,
+        PLAYING,
     };
 
     //---------------------------------------------------
@@ -50,6 +50,8 @@ namespace mlp {
         // frame at which we paused / will resume
         frame_t pauseFrame{0};
 
+        float fadeIncrement;
+
         /// levels
         float playbackLevel{1.f};
         float recordLevel{1.f};
@@ -70,14 +72,17 @@ namespace mlp {
             loopEndFrame = bufferFrames - 1;
             state = LoopLayerState::SETTING;
             SetWrite(true);
-            assert(phasor[currentPhasorIndex].isActive == false);
+
+            //// FIXME: we are hitting some state where both phasors are active while the layer is stopped
+            // assert(phasor[currentPhasorIndex].isActive == false);
+
             phasor[currentPhasorIndex].Reset();
             std::cout << "[LoopLayer] opened loop" << std::endl;
         }
 
 
         void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
-            state = LoopLayerState::LOOPING;
+            state = LoopLayerState::PLAYING;
             SetRead(shouldUnmute);
             SetWrite(shouldDub);
             lastPhasorIndex = currentPhasorIndex;
@@ -88,33 +93,14 @@ namespace mlp {
 
             loopEndFrame = newPhasor.maxFrame = oldPhasor.maxFrame = oldPhasor.currentFrame;
             oldPhasor.isFadingOut = true;
-            newPhasor.Reset(loopStartFrame);
+            if (loopEnabled) {
+                std::cout << "[LoopLayer] closing loop; looping enabled; resetting" << std::endl;
+                newPhasor.Reset(loopStartFrame);
+            } else {
+                std::cout << "[LoopLayer] closing loop; looping disabled" << std::endl;
+            }
             std::cout << "[LoopLayer] closed loop; length = " << newPhasor.maxFrame << std::endl;
         }
-
-//        void SetWriteActive(bool active) {
-//            if (active) {
-//                writeSwitch.Open();
-//            } else {
-//                writeSwitch.Close();
-//            }
-//        }
-//
-//        void SetReadActive(bool active) {
-//            if (active) {
-//                readSwitch.Open();
-//            } else {
-//                readSwitch.Close();
-//            }
-//        }
-//
-//        void SetClearActive(bool active) {
-//            if (active) {
-//                clearSwitch.Open();
-//            } else {
-//                clearSwitch.Close();
-//            }
-//        }
 
         bool ToggleWrite() {
             return writeSwitch.Toggle();
@@ -124,9 +110,9 @@ namespace mlp {
             return readSwitch.Toggle();
         }
 
-        bool ToggleClear() {
-            return clearSwitch.Toggle();
-        }
+//        bool ToggleClear() {
+//            return clearSwitch.Toggle();
+//        }
 
         void SetWrite(bool active) {
             if (active) {
@@ -228,12 +214,13 @@ namespace mlp {
             auto result = phasor[currentPhasorIndex].Advance();
 
             if (result.Test(PhasorAdvanceResultFlag::DONE_FADEOUT)) {
+
                 if (stopPending) {
-                    SetRead(false);
-                    SetWrite(false);
+//                    SetRead(false);
+//                    SetWrite(false);
                     state = LoopLayerState::STOPPED;
                     stopPending = false;
-                    outputs->flags.Set(LayerOutputFlagId::Stopped);
+                    if(outputs) outputs->flags.Set(LayerOutputFlagId::Stopped);
                 }
             }
 
@@ -243,6 +230,9 @@ namespace mlp {
                     currentPhasorIndex ^= 1;
                     phasor[currentPhasorIndex].Reset(loopStartFrame);
                     if (outputs) outputs->flags.Set(LayerOutputFlagId::Looped);
+                } else {
+                    stopPending = true;
+                    phasor[currentPhasorIndex].isFadingOut = true;
                 }
             }
 
@@ -255,6 +245,7 @@ namespace mlp {
             phasor[currentPhasorIndex].maxFrame = loopEndFrame;
             phasor[lastPhasorIndex].isFadingOut = true;
             phasor[currentPhasorIndex].Reset(resetFrame);
+            state = LoopLayerState::PLAYING;
         }
 
         void Reset(frame_t frame) {
@@ -264,6 +255,7 @@ namespace mlp {
 
         void Restart() {
             Reset(0);
+            state = LoopLayerState::PLAYING;
         }
 
         void Pause() {
@@ -276,12 +268,22 @@ namespace mlp {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;
+                    if (lastPhasorIndex == currentPhasorIndex) {
+                        lastPhasorIndex = currentPhasorIndex ^ 1;
+                    }
                     thePhasor.Reset(pauseFrame);
                     return;
                 }
             }
+
             // shouldn't really get here
             std::cerr << "[LoopLayer] resume failed - already playing + in a crossfade?" << std::endl;
+            /// just swap them i guess
+            currentPhasorIndex = lastPhasorIndex;
+            lastPhasorIndex = currentPhasorIndex ^ 1;
+            phasor[currentPhasorIndex].Reset(pauseFrame);
+            ///... hm...
+            SetRead(true);
         }
 
         void StoreTrigger() {
@@ -315,9 +317,13 @@ namespace mlp {
             if (triggerFrame < loopStartFrame) {
                 triggerFrame = loopStartFrame;
             }
+            for (auto &thePhasor: phasor) {
+                thePhasor.triggerFrame = triggerFrame;
+            }
         }
 
         void SetFadeIncrement(float increment) {
+            fadeIncrement = increment;
             for (auto &thePhasor: phasor) {
                 thePhasor.fadeIncrement = increment;
             }
@@ -338,6 +344,19 @@ namespace mlp {
                 return false;
             }
             return true;
+        }
+
+        void SetLoopEnabled(bool value) {
+            loopEnabled = value;
+            if (outputs) {
+                std::cout << "using layer outputs: " << outputs << std::endl;
+                if (loopEnabled) {
+                    outputs->flags.Set(LayerOutputFlagId::LoopEnabled);
+                }
+                else {
+                    outputs->flags.Set(LayerOutputFlagId::LoopDisabled);
+                }
+            }
         }
 
     };

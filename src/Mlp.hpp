@@ -69,8 +69,10 @@ namespace mlp {
         };
 
         enum class IndexParamId : int {
+            Mode,
             SelectLayer,
             ResetLayer,
+            RestartLayer,
             LoopStartFrame,
             LoopEndFrame,
             LoopResetFrame,
@@ -78,14 +80,17 @@ namespace mlp {
         };
 
         static constexpr char IndexParamIdLabel[static_cast<int>(IndexParamId::Count)][16] = {
+                "MODE",
                 "SELECT",
                 "RESET",
-                "STARTPOS=",
+                "RESTART",
+                "STARTPOS",
                 "ENDPOS",
                 "RESETPOS"
         };
 
         enum class IndexIndexParamId : int {
+            LayerMode,
             LayerLoopStartFrame,
             LayerLoopEndFrame,
             LayerLoopResetFrame,
@@ -93,6 +98,7 @@ namespace mlp {
         };
 
         static constexpr char IndexIndexParamIdLabel[static_cast<int>(IndexIndexParamId::Count)][32] = {
+                "MODE",
                 "STARTPOS",
                 "ENDPOS",
                 "RESETPOS"
@@ -202,8 +208,11 @@ namespace mlp {
                 kernel.FinalizeOutputs();
                 for (unsigned int i = 0; i < numLoopLayers; ++i) {
                     if (outputsData.layers[i].flags.Any()) {
+                        // std::cout << "enqueuing layer output flags; layer: " << i << std::endl;
                         outputsQ.layerFlagsQ.enqueue({i, outputsData.layers[i].flags});
                     }
+                    outputsQ.layerPositionQ.enqueue(
+                            {i, {outputsData.layers[i].positionRange[0], outputsData.layers[i].positionRange[1]}});
                 }
                 kernel.InitializeOutputs(&outputsData);
             }
@@ -255,11 +264,17 @@ namespace mlp {
             ParamChangeRequest<IndexParamId, unsigned long int> indexParamChangeRequest{};
             while (paramChangeQ.indexQ.try_dequeue(indexParamChangeRequest)) {
                 switch (indexParamChangeRequest.id) {
+                    case IndexParamId::Mode:
+                        kernel.SetMode(static_cast<LayerBehaviorModeId>(indexParamChangeRequest.value));
+                        break;
                     case IndexParamId::SelectLayer:
                         kernel.SetCurrentLayer((unsigned int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::ResetLayer:
                         kernel.ResetLayer((int) indexParamChangeRequest.value);
+                        break;
+                    case IndexParamId::RestartLayer:
+                        kernel.RestartLayer((int) indexParamChangeRequest.value);
                         break;
                     case IndexParamId::LoopStartFrame:
                         kernel.SetLoopStartFrame(indexParamChangeRequest.value);
@@ -315,13 +330,13 @@ namespace mlp {
 /// FIXME: need a more formal/ explicit way of specifying parameter range mappings
                         tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
                         kernel.SetFadeTime(tmpValue,
-                                                (int) indexFloatParamChangeRequest.value.index);
+                                           (int) indexFloatParamChangeRequest.value.index);
 
                     case IndexFloatParamId::LayerSwitchTime:
 /// FIXME: need a more formal/ explicit way of specifying parameter range mappings
                         tmpValue = indexFloatParamChangeRequest.value.value * 10.f;
                         kernel.SetSwitchTime(tmpValue,
-                                           (int) indexFloatParamChangeRequest.value.index);
+                                             (int) indexFloatParamChangeRequest.value.index);
 
                         break;
                     default:
@@ -332,6 +347,12 @@ namespace mlp {
             ParamChangeRequest<IndexIndexParamId, IndexIndexParamValue> indexIndexParamChangeRequest{};
             while (paramChangeQ.indexIndexQ.try_dequeue(indexIndexParamChangeRequest)) {
                 switch (indexIndexParamChangeRequest.id) {
+
+                    case IndexIndexParamId::LayerMode:
+                        kernel.SetLayerMode(indexIndexParamChangeRequest.value.index,
+                                            static_cast<LayerBehaviorModeId>(indexIndexParamChangeRequest.value.value));
+                        break;
+
                     case IndexIndexParamId::LayerLoopStartFrame:
                         kernel.SetLoopStartFrame(indexIndexParamChangeRequest.value.value,
                                                  (int) indexIndexParamChangeRequest.value.index);
@@ -364,7 +385,10 @@ namespace mlp {
                                             indexBoolParamChangeRequest.value.value);
                         break;
                     case IndexBoolParamId::LayerLoopEnabled:
-                        kernel.SetLoopEnabled(indexBoolParamChangeRequest.value.value);
+                        kernel.SetLoopEnabled(
+                                /// FIXME: weird that the arguments are reversed on this one
+                                indexBoolParamChangeRequest.value.value,
+                                static_cast<int>(indexBoolParamChangeRequest.value.index));
                         break;
                     default:
                         break;
@@ -405,6 +429,9 @@ namespace mlp {
             paramChangeQ.indexBoolQ.enqueue({id, {index, value}});
         }
 
+        frame_t GetLoopEndFrame(unsigned int aLayerIndex) {
+            return kernel.GetLoopEndFrame(aLayerIndex);
+        }
 
     };
 }

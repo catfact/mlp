@@ -16,9 +16,20 @@ AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 {
 }
 
+/*
+ * juce::Typeface::Ptr getTypefaceForFont(const juce::Font& f) override
+{
+juce::ignoreUnused(f);
+static juce::Typeface::Ptr myFont = juce::Typeface::createSystemTypefaceFor(BinaryData::MegrimRegular_ttf, BinaryData::MegrimRegular_ttfSize);
+return myFont;
+};
+
+
+ */
 //==============================================================================
 void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 {
+
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
 }

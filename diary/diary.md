@@ -244,7 +244,41 @@ had some more thoughts / realizations about planned features:
 
 - inter-layer audio routing matrix. with levels of course, but i would _really_ like to have (optional) stereo processing in that matrix as well. (and on layer->main outputs.) i have a nice band-split stereoizer module that could be adapted to stereo->stereo operation.
 
-- mode specification. i have been thinking of this in terms of a DSL or arbitrarily complex data structure, but in reality it could almost just be... a patch matrix? with per-layer conditions on one axis, and per-layer actions on the other. (a pretty big and unwieldy matrix to be sure.) of course a sparse text-based representation would still be useful.
+- mode specification. i have been thinking of this in terms of a DSL or arbitrarily complex data structure, but in reality it could almost just be... a patch matrix? with per-layer conditions on one axis, and per-layer actions on the other?? (a pretty big and unwieldy matrix to be sure.) of course a sparse text-based representation would still be useful.
 
 **time**: ~4hr
 
+---
+
+# 2024/9/4
+
+hm, has been a few days again. lots of stresses right now, working on the looper is a welcome and nearly compulsive distraction, but there are few times in which to indulge it.
+
+let's see, i suppose i mostly added GUI. there are more individual controls, a "lookandfeel" is at least existing, there is an ugly but working per-layer position indicator. GUI is always a slog for me, and i tend to go straight for physical controls and simple visual feedback, skipping the design iteration that is needed to make a really good interface. so this part is a little challenging.
+
+which is to say, "doldrums" seems a bit apropos, as i start to feel that the loop-layer behavior logic, and the audio->control layer communication spec, are becoming more spaghettified than i'd like. and of course the GUI, which is random and busy, and also effects an architecture that seemed clear once but becomes ever more tortured. on some level i know the "right" move is to redo it now, with a better-considered plan for state flow... but. this isn't an exercise in doing things the "right way," rather it's to beeline for MVP and see how well it works. (maybe quite buggily.)
+
+anyways! i'm going to forge ahead. it's fun to play with already. somehow there is yet more to do for basic playability, starting with some controls to add (doesn't need to be all of these):
+ - individual layer: (bang) reset, restart, pause, resume, stop, store reset, store trigger
+ - global: (bang) stop all, reset all, (toggle)  auto select, clear on set, read on set, write on set
+
+and, ech, gui stuff:
+- need to display more arbitrary scalar values per layer, such as loop endpoint, reset position etc. unfortunately specifying such things is a point of weakness in the current GUI architecture (such as it is) 
+
+and i think really the most effective way to add powerful midi mapping, at least for my purposes, is to just embed a scripting interpreter. either wren or lua. i personally don't mind hardcoding controller numbers, but a simple alternative could be to expose a set of generic integer controls (7- or 14-bit) that can be MIDI-learned in a host DAW.
+
+the main reason that a scripting layer makes sense to me, and is worth skipping ahead towards, is that the exposed controls are pretty low-level. common musical functions require manipulating several controls synchronously in different ways: for example "overdub" engaging `Write` while disengaging `Clear` (and possibly setting `Preserve(1)`.) it just seems most pragmatic to script this one way or another.
+
+so:
+ - add scripting interpreter, glue code, supporting GUI (ech)
+
+that is probably enough for a 0.0.2 alpha release. 
+
+i think other features can wait, but at the moment (and in order of challenge) those might look omething like this for a 1.0.0 milestone:
+- varispeed (the biggest lift and scariest refactor)
+- settable loop and condition counters
+- arbitrary sync behavior specification
+- filters
+- routing matrix
+
+**time**: ~6hr

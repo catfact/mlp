@@ -18,7 +18,7 @@ namespace mlp {
         Reset,
         Restarted,
         Silent,
-        // Active,
+        Active,
         Stopped,
         Writing,
         NotWriting,
@@ -28,6 +28,8 @@ namespace mlp {
         NotReading,
         Opened,
         Closed,
+        LoopEnabled,
+        LoopDisabled,
         Count
     };
 
@@ -43,7 +45,7 @@ namespace mlp {
         "Reset",
         "Restarted",
         "Silent",
-        // "Active",
+        "Active",
         "Stopped",
         "Writing",
         "NotWriting",
@@ -52,7 +54,9 @@ namespace mlp {
         "Reading",
         "NotReading",
         "Opened",
-        "Closed"
+        "Closed",
+        "LoopEnabled",
+        "LoopDisabled"
     };
 
 
@@ -80,6 +84,11 @@ namespace mlp {
     struct LayerPositionMessageData {
         unsigned int layer;
         frame_t positionRange[2];
+    };
+
+    struct LayerLoopEndMessageData {
+        unsigned int layer;
+        frame_t loopEnd;
     };
 
 

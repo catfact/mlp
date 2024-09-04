@@ -68,7 +68,7 @@ namespace mlp {
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
                 layerBehavior[i].thisLayer = &layerInterface[i];
                 layerBehavior[i].layerBelow = &layerInterface[(i - 1) % numLoopLayers];
-                layerBehavior[i].layerAbove = &layerInterface[(i + 2) % numLoopLayers];
+                layerBehavior[i].layerAbove = &layerInterface[(i + 1) % numLoopLayers];
             }
             /// initialize modes
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
@@ -113,13 +113,22 @@ namespace mlp {
             }
         }
 
+        bool didInitOutputs = false;
         void InitializeOutputs(OutputsData *aOutputs) {
             outputs = aOutputs;
             *outputs = defaultOutputsData;
             for (unsigned int i = 0; i < numLoopLayers; ++i) {
                 outputs->layers[i].positionRange[0] = layer[i].GetCurrentFrame();
-                layerInterface[i].outputs = &outputs->layers[i];
-                layer[i].outputs = &outputs->layers[i];
+                auto layerOutputs = &outputs->layers[i];
+                layerInterface[i].outputs = layerOutputs;
+                layer[i].outputs = layerOutputs;
+            }
+            if (!didInitOutputs) {
+                didInitOutputs = true;
+                for (unsigned int i = 0; i < numLoopLayers; ++i) {
+                    auto layerOutputs = &outputs->layers[i];
+                    std::cout << "setting outputs for layer " << i << " = " << layerOutputs << std::endl;
+                }
             }
         }
 
@@ -132,8 +141,7 @@ namespace mlp {
             }
         }
 
-        void SetInnerLayer(unsigned int aLayerIndex)
-        {
+        void SetInnerLayer(unsigned int aLayerIndex) {
             std::cout << "setting inner layer: " << aLayerIndex << std::endl;
             layerInterface[innerLayer].isInner = false;
             innerLayer = aLayerIndex;
@@ -156,10 +164,10 @@ namespace mlp {
         void SetLoopTap() {
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
-                case LoopLayerState::LOOPING:
+                case LoopLayerState::PLAYING:
                     if (advanceLayerOnLoopOpen && shouldAdvanceLayerOnNextTap) {
                         //std::cout << "SetLoopTap(): advancing layer; current layer = " << currentLayer << std::endl;
-                        if (currentLayer >= (numLoopLayers-1)) {
+                        if (currentLayer >= (numLoopLayers - 1)) {
                             SetCurrentLayer(0);
                         } else {
                             SetCurrentLayer(currentLayer + 1);
@@ -186,7 +194,9 @@ namespace mlp {
                     std::cout << "TapLoop(): closing loop; layer = " << currentLayer << std::endl;
                     layer[currentLayer].CloseLoop(true, false);
                     layerBehavior[currentLayer].ProcessCondition(LayerConditionId::CloseLoop);
-                    shouldAdvanceLayerOnNextTap = true;
+                    if (advanceLayerOnLoopOpen) {
+                        shouldAdvanceLayerOnNextTap = true;
+                    }
                     SetOuterLayer(currentLayer);
                     SetOutputLayerFlag(currentLayer, LayerOutputFlagId::Closed);
                     SetOutputLayerFlag(currentLayer, LayerOutputFlagId::NotWriting);
@@ -330,7 +340,8 @@ namespace mlp {
 
         void SetLoopEnabled(bool enabled, int aLayerIndex = -1) {
             unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
-            layer[layerIndex].loopEnabled = enabled;
+            //layer[layerIndex].loopEnabled = enabled;
+            layer[layerIndex].SetLoopEnabled(enabled);
         }
 
         void SetClearOnStop(bool clear) {
@@ -343,12 +354,12 @@ namespace mlp {
 
 
         void SetWriteOnSet(bool write) {
-            (void)write;
+            (void) write;
             //....TODO
         }
 
         void SetReadOnSet(bool read) {
-            (void)read;
+            (void) read;
             //....TODO
         }
 
@@ -362,6 +373,35 @@ namespace mlp {
                 layer[layerIndex].Reset();
                 SetOutputLayerFlag(layerIndex, LayerOutputFlagId::Reset);
             }
+        }
+
+        void RestartLayer(int aLayerIndex = -1) {
+            unsigned int layerIndex = aLayerIndex < 0 ? currentLayer : (unsigned int) aLayerIndex;
+            if (layerIndex >= 0 && layerIndex < numLoopLayers) {
+                layer[layerIndex].Restart();
+                SetOutputLayerFlag(layerIndex, LayerOutputFlagId::Restarted);
+            }
+        }
+
+        void SetLayerMode(unsigned int aLayerIndex, LayerBehaviorModeId mode) {
+            SetLayerBehaviorMode(layerBehavior[aLayerIndex], mode);
+        }
+
+
+        void SetMode(LayerBehaviorModeId mode) {
+            /// set for all layers!
+            for (unsigned int i = 0; i < numLoopLayers; ++i) {
+                SetLayerBehaviorMode(layerBehavior[i], mode);
+            }
+        }
+
+
+        frame_t GetLoopEndFrame(unsigned int aLayerIndex) const {
+            return layer[aLayerIndex].loopEndFrame;
+        }
+
+        frame_t GetFadeFrames(unsigned int aLayerIndex) const {
+            return static_cast<unsigned int>(1.f / layer[aLayerIndex].fadeIncrement);
         }
     };
 }
