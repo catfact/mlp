@@ -89,10 +89,13 @@ class MlpGui : public juce::Component {
     class LayerParameterControl : public juce::Slider {
         int layerIndex;
         int parameterIndex;
+        const char *label;
     public:
-        LayerParameterControl(int aLayerIndex, int aParameterIndex, const std::string &aLabel) :
+
+        LayerParameterControl(int aLayerIndex, int aParameterIndex, const char *aLabel) :
                 layerIndex(aLayerIndex),
-                parameterIndex(aParameterIndex) {
+                parameterIndex(aParameterIndex),
+                label(aLabel) {
             //setSliderStyle(juce::Slider::LinearBarVertical);
             setSliderStyle(juce::Slider::LinearBar);
             //setSliderStyle(juce::Slider::RotaryHorizontalDrag);
@@ -108,6 +111,12 @@ class MlpGui : public juce::Component {
                                            static_cast<unsigned int>(layerIndex), static_cast<float>(getValue()));
                 }
             };
+        }
+        void paint(juce::Graphics &g) override {
+            g.fillAll(juce::Colours::black);
+            juce::Slider::paint(g);
+            g.setColour(juce::Colours::ghostwhite);
+            g.drawText(label, 0, 0, getWidth(), getHeight(), juce::Justification::left);
         }
     };
 
@@ -331,11 +340,18 @@ class MlpGui : public juce::Component {
         //----------------------------------------------------------------------------------
         struct LayerParameterControlGroup
                 : public LayerWidgetControlGroup<LayerParameterControl, (size_t) mlp::Mlp::FloatParamId::Count, true, sliderHeight> {
+
+            //std::vector<std::unique_ptr<juce::Label>> labels;
+
             explicit LayerParameterControlGroup(int layerIndex) {
                 for (int i = 0; i < (int) mlp::Mlp::FloatParamId::Count; ++i) {
+                    const std::string &label = mlp::Mlp::IndexFloatParamIdLabel[i];
                     controls.push_back(std::make_unique<LayerParameterControl>(layerIndex, i,
                                                                                mlp::Mlp::IndexFloatParamIdLabel[i]));
                     addAndMakeVisible(controls.back().get());
+//                    labels.push_back(std::make_unique<juce::Label>(label));
+//                    addAndMakeVisible(labels.back().get());
+//                    labels.back()->attachToComponent(controls.back().get(), true);
                 }
             }
         };
@@ -351,10 +367,10 @@ class MlpGui : public juce::Component {
                 auto ww = static_cast<float>(getWidth()) - (ins*2);
                 auto hh = static_cast<float>(getHeight()) - (ins*2);
                 float x, w;
+
+                g.setColour(juce::Colours::lightslategrey);
+
                 if (startPos < endPos) {
-
-                    g.setColour(juce::Colours::grey);
-
                     x = startPos * ww;
                     x = std::max(0.f, std::min(x, ww - 1));
                     w = (endPos - startPos) * ww;
@@ -439,8 +455,8 @@ class MlpGui : public juce::Component {
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
-                    Track(Fr(1)),
-                    Track(Px(buttonHeight / 2)),
+                    Track(Px((sliderHeight+2)*5)),
+                    Track(Px(sliderHeight)),
                     Track(Fr(1)),
             };
 
@@ -518,6 +534,8 @@ public:
             };
 
         }
+
+        SetInitialState();
     }
 
     void resized() override {
@@ -576,5 +594,18 @@ public:
         layer->positionDisplay->startPos = (float) start / (float) layer->loopEndFrame;
         layer->positionDisplay->endPos = (float) end / (float) layer->loopEndFrame;
         layer->positionDisplay->repaint();
+    }
+
+    void SetInitialState() {
+        /// FIXME: very silly: just hardcoding initial GUI state for now
+        globalControlGroup->modeButtons[1]->setToggleState(true, juce::NotificationType::dontSendNotification);
+        for (auto &layer: layerControlStack->layerControlGroups) {
+            layer->modeControlGroup->controls[1]->setToggleState(true, juce::NotificationType::dontSendNotification);
+            layer->toggleControlGroup->controls[(int)mlp::Mlp::IndexBoolParamId::LayerReadEnabled]->setToggleState(true, juce::NotificationType::dontSendNotification);
+            layer->toggleControlGroup->controls[(int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled]->setToggleState(true, juce::NotificationType::dontSendNotification);
+            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerPlaybackLevel]->setValue(1.0);
+            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerRecordLevel]->setValue(1.0);
+            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerPreserveLevel]->setValue(1.0);
+        }
     }
 };
