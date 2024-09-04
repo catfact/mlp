@@ -116,14 +116,19 @@ class MlpGui : public juce::Component {
         static constexpr int numLines = 16;
         std::array<std::string, numLines> lines{};
         unsigned int lineIndex = 0;
-
+        typedef std::chrono::time_point<std::chrono::system_clock> time_t;
+        time_t time;
         explicit LayerOutputLog() {
             setMultiLine(true);
             setReadOnly(true);
+            time = std::chrono::system_clock::now();
         }
 
         void AddLine(const std::string &line) {
-            lines[lineIndex] = line;
+            time_t now = std::chrono::system_clock::now();
+            auto msSince = std::chrono::duration_cast<std::chrono::milliseconds>(now - time);
+            time = now;
+            lines[lineIndex] = std::to_string(msSince.count()) + "\t:\t" + line;
             lineIndex = (lineIndex + 1) % numLines;
             std::string text;
             for (unsigned int i = 0; i < numLines; ++i) {
