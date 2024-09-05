@@ -1,5 +1,7 @@
 
-#include "BinaryData.h"
+#include <iostream>
+
+#include "ScriptManager.hpp"
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 
@@ -12,12 +14,11 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
           inputBuffer(initialBufferSize),
           outputBuffer(initialBufferSize) {
 
-    int wrenMainSize;
-    auto wrenMain = BinaryData::getNamedResource("main_wren", wrenMainSize);
     //const char* getNamedResource (const char* resourceNameUTF8, int& dataSizeInBytes);
-    mlp::Weaver::Init(wrenMain);
+    auto mainScript = ScriptManager::GetMainScript();
+    mlp::Weaver::Init(mainScript);
+    delete mainScript;
     weaver = mlp::Weaver::GetInstance();
-
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor() = default;

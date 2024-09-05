@@ -1,4 +1,4 @@
-System.print("hello from main.wren")
+System.print("hello from main.wren (embedded)")
 
 class Output {
   foreign static bang(a, b)
