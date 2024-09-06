@@ -1,16 +1,19 @@
 #pragma once
 
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <vector>
 
 #include "wren.hpp"
+#include "Mlp.hpp"
 
 namespace mlp {
 
     class Weaver {
         // needs to be singleton
         static Weaver *instance;
+        Mlp *mlp;
 
         /// TODO: will probably want an event queue,
         /// so that multiple threads can trigger wren calls without blocking
@@ -30,16 +33,84 @@ namespace mlp {
         std::map<const std::string, WrenHandle *> ffiClassHandles;
         static std::map<const std::string, std::map<const std::string, WrenForeignMethodFn>> ffiMethodFns;
 
-        static void FfiOutputBang(WrenVM *vm) {
-            double a = wrenGetSlotDouble(vm, 1);
-            double b = wrenGetSlotDouble(vm, 2);
-            std::cout << "bang " << a << " " << b << std::endl;
+        static void FfiBangSet(WrenVM *vm) {
+            (void) vm;
+            GetInstance()->mlp->Tap(mlp::Mlp::TapId::Set);
+        }
+
+        static void FfiBangStop(WrenVM *vm) {
+            (void) vm;
+            GetInstance()->mlp->Tap(mlp::Mlp::TapId::Stop);
+        }
+
+        static void FfiBangReset(WrenVM *vm) {
+            (void) vm;
+            GetInstance()->mlp->Tap(mlp::Mlp::TapId::Reset);
+        }
+
+
+        //// FIXME: parameters and toggles should really be reflected in GUI (somehow)
+        static void FfiParamLayerPreserveLevel(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto level = static_cast<float>(wrenGetSlotDouble(vm, 2));
+            GetInstance()->mlp->IndexFloatParamChange(mlp::Mlp::IndexFloatParamId::LayerPreserveLevel, layerIndex,
+                                                      level);
+        }
+
+        static void FfiParamLayerRecordLevel(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto level = static_cast<float>(wrenGetSlotDouble(vm, 2));
+            GetInstance()->mlp->IndexFloatParamChange(mlp::Mlp::IndexFloatParamId::LayerRecordLevel, layerIndex, level);
+        }
+
+
+        static void FfiParamLayerPlaybackLevel(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto level = static_cast<float>(wrenGetSlotDouble(vm, 2));
+            GetInstance()->mlp->IndexFloatParamChange(mlp::Mlp::IndexFloatParamId::LayerPlaybackLevel, layerIndex,
+                                                      level);
+        }
+
+        static void FfiParamLayerFadeTime(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto time = static_cast<float>(wrenGetSlotDouble(vm, 2));
+            GetInstance()->mlp->IndexFloatParamChange(mlp::Mlp::IndexFloatParamId::LayerFadeTime, layerIndex, time);
+        }
+
+        static void FfiParamLayerSwitchTime(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto time = static_cast<float>(wrenGetSlotDouble(vm, 2));
+            GetInstance()->mlp->IndexFloatParamChange(mlp::Mlp::IndexFloatParamId::LayerFadeTime, layerIndex, time);
+        }
+
+        static void FfiLayerWrite(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto state = wrenGetSlotBool(vm, 2);
+            GetInstance()->mlp->IndexBoolParamChange(mlp::Mlp::IndexBoolParamId::LayerWriteEnabled, layerIndex, state);
+        }
+
+        static void FfiLayerRead(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto state = wrenGetSlotBool(vm, 2);
+            GetInstance()->mlp->IndexBoolParamChange(mlp::Mlp::IndexBoolParamId::LayerReadEnabled, layerIndex, state);
+        }
+
+        static void FfiLayerClear(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto state = wrenGetSlotBool(vm, 2);
+            GetInstance()->mlp->IndexBoolParamChange(mlp::Mlp::IndexBoolParamId::LayerClearEnabled, layerIndex, state);
+        }
+
+        static void FfiLayerLoop(WrenVM *vm) {
+            auto layerIndex = static_cast<unsigned int>(wrenGetSlotDouble(vm, 1));
+            auto state = wrenGetSlotBool(vm, 2);
+            GetInstance()->mlp->IndexBoolParamChange(mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, layerIndex, state);
         }
 
     public:
-        static Weaver *Init(const char *scriptPath = nullptr) {
+        static Weaver *Init(Mlp *aMlp, const char *aScriptPath = nullptr) {
             if (instance == nullptr) {
-                instance = new Weaver(scriptPath);
+                instance = new Weaver(aMlp, aScriptPath);
             }
             return instance;
         }
@@ -48,21 +119,21 @@ namespace mlp {
 
         static Weaver *GetInstance() {
             if (instance == nullptr) {
-                /// if the VM wasn't initialized at construction,
-                /// it means there was no initial script data given,
-                /// and things will probably not work
-                std::cerr << "<WARNING> no main script!" << std::endl;
-                instance = new Weaver();
+                /// if the VM wasn't initialized before referencing,
+                /// it means there was no MLP instance or initial script data given,
+                /// and nothing will work!
+                assert(false);
+//                std::cerr << "<WARNING> no main script!" << std::endl;
+//                instance = new Weaver();
             }
             return instance;
         }
 
     private:
-        explicit Weaver(const char *scriptData = nullptr) {
+        explicit Weaver(Mlp *aMlp = nullptr, const char *scriptData = nullptr) : mlp(aMlp) {
             config.errorFn = &ErrorFn;
             config.writeFn = &WriteFn;
-            config.bindForeignMethodFn = &bindForeignMethodFn;
-
+            config.bindForeignMethodFn = &BindForeignMethodFn;
 
             vm = wrenNewVM(&config);
             const char *module = "main";
@@ -70,7 +141,20 @@ namespace mlp {
             WrenInterpretResult result;
 
             // NB: FFI function pointers need to be set before running main!
-            ffiMethodFns["Output"]["bang(_,_)"] = &FfiOutputBang;
+
+            ffiMethodFns["Mlp"]["BangSet()"] = &FfiBangSet;
+            ffiMethodFns["Mlp"]["BangStop()"] = &FfiBangStop;
+            ffiMethodFns["Mlp"]["BangReset()"] = &FfiBangReset;
+
+            ffiMethodFns["Mlp"]["ParamLayerPreserveLevel(_,_)"] = &FfiParamLayerPreserveLevel;
+            ffiMethodFns["Mlp"]["ParamLayerRecordLevel(_,_)"] = &FfiParamLayerRecordLevel;
+            ffiMethodFns["Mlp"]["ParamLayerPlaybackLevel(_,_)"] = &FfiParamLayerPlaybackLevel;
+            ffiMethodFns["Mlp"]["ParamLayerFadeTime(_,_)"] = &FfiParamLayerFadeTime;
+            ffiMethodFns["Mlp"]["ParamLayerSwitchTime(_,_)"] = &FfiParamLayerSwitchTime;
+
+            ffiMethodFns["Mlp"]["LayerWrite(_,_)"] = &FfiLayerWrite;
+            ffiMethodFns["Mlp"]["LayerRead(_,_)"] = &FfiLayerRead;
+            ffiMethodFns["Mlp"]["LayerClear(_,_)"] = &FfiLayerClear;
 
             if (scriptData) {
                 result = wrenInterpret(vm, module, scriptData);
@@ -79,17 +163,14 @@ namespace mlp {
             }
 
             switch (result) {
-                case WREN_RESULT_COMPILE_ERROR: {
+                case WREN_RESULT_COMPILE_ERROR:
                     printf("<ERROR> [compile]\n");
-                }
                     break;
-                case WREN_RESULT_RUNTIME_ERROR: {
+                case WREN_RESULT_RUNTIME_ERROR:
                     printf("<ERROR> [runtime]\n");
-                }
                     break;
-                case WREN_RESULT_SUCCESS: {
+                case WREN_RESULT_SUCCESS:
                     printf("<ok>\n");
-                }
                     break;
             }
 
@@ -120,48 +201,83 @@ namespace mlp {
 
     public:
 
-        ///--- API for calling wren from c++
-        void HandleNoteOn(const uint8_t *data) {
-            std::cout << "note on: " << (int) data[0] << " " << (int) data[1] << std::endl;
-            {
-                std::lock_guard<std::mutex> lock(vmLock);
-                if (vm != nullptr) {
-                    wrenEnsureSlots(vm, 2);
-                    // TODO: worth profiling these lookups, could be replaced by enums/arrays
-                    WrenHandle *hClass = vmClassHandles["MidiIn"];
-                    WrenHandle *hMethod = vmMethodHandles["MidiIn"]["noteOn(_)"];
-                    wrenSetSlotHandle(vm, 0, hClass);
-                    wrenSetSlotBytes(vm, 1, reinterpret_cast<const char *>(data), 2);
-                    wrenCall(vm, hMethod);
+        void HandleMidiMessage(const unsigned char *aData, int aSize) {
+            std::lock_guard<std::mutex> lock(vmLock);
+            if (vm != nullptr) {
+                wrenEnsureSlots(vm, 2);
+                WrenHandle *hClass = vmClassHandles["MidiIn"];
+                WrenHandle *hMethod;
+                int channel = aData[0] & 0x0F;
+                int status  = aData[0] & 0xF0;
+                switch (status) {
+                    case 0x90:
+                        wrenSetSlotDouble(vm, 1, channel);
+                        wrenSetSlotDouble(vm, 2, aData[1]);
+                        wrenSetSlotDouble(vm, 3, aData[2]);
+                        hMethod = vmMethodHandles["MidiIn"]["noteOn(_)"];
+                        break;
+                    case 0x80:
+                        wrenSetSlotDouble(vm, 1, channel);
+                        wrenSetSlotDouble(vm, 2, aData[1]);
+                        wrenSetSlotDouble(vm, 3, aData[2]);
+                        hMethod = vmMethodHandles["MidiIn"]["noteOff(_)"];
+                        break;
+                    case 0xB0:
+                        wrenSetSlotDouble(vm, 1, channel);
+                        wrenSetSlotDouble(vm, 2, aData[1]);
+                        wrenSetSlotDouble(vm, 3, aData[2]);
+                        hMethod = vmMethodHandles["MidiIn"]["control(_)"];
+                        break;
+                        case 0xC0:
+
+                    default:
+                        return;
                 }
+                //WrenHandle *hMethod = vmMethodHandles["MidiIn"]["data(_)"];
+                wrenSetSlotHandle(vm, 0, hClass);
+                wrenSetSlotBytes(vm, 1, reinterpret_cast<const char *>(aData), static_cast<unsigned int>(aSize));
+                wrenCall(vm, hMethod);
             }
         }
 
-        void HandleNoteOff(const uint8_t *data) {
-            std::cout << "note off: " << (int) data[0] << " " << (int) data[1] << std::endl;
-            {
-                std::lock_guard<std::mutex> lock(vmLock);
-                if (vm != nullptr) {
-                    WrenHandle *hClass = vmClassHandles["MidiIn"];
-                    wrenEnsureSlots(vm, 2);
-                    WrenHandle *hMethod = vmMethodHandles["MidiIn"]["noteOff(_)"];
-                    wrenSetSlotHandle(vm, 0, hClass);
-                    wrenSetSlotBytes(vm, 1, reinterpret_cast<const char *>(data), 2);
-                    wrenCall(vm, hMethod);
-                }
-            }
-        }
+//        ///--- API for calling wren from c++
+//        void HandleNoteOn(int channel, int note, int velocity) {
+//            //std::cout << "note on: " << (int) data[0] << " " << (int) data[1] << std::endl;
+//            {
+//
+//            }
+//        }
+
+//        void HandleNoteOff(const uint8_t *data) {
+//            std::cout << "note off: " << (int) data[0] << " " << (int) data[1] << std::endl;
+//            {
+//                std::lock_guard<std::mutex> lock(vmLock);
+//                if (vm != nullptr) {
+//                    WrenHandle *hClass = vmClassHandles["MidiIn"];
+//                    wrenEnsureSlots(vm, 2);
+//                    WrenHandle *hMethod = vmMethodHandles["MidiIn"]["noteOff(_)"];
+//                    wrenSetSlotHandle(vm, 0, hClass);
+//                    wrenSetSlotBytes(vm, 1, reinterpret_cast<const char *>(data), 2);
+//                    wrenCall(vm, hMethod);
+//                }
+//            }
+//        }
 
         ///--- wren bindings
+
+
+        /// TODO: should be a callback to the host app
         static void WriteFn(WrenVM *vm, const char *text) {
-            (void)vm;
+            (void) vm;
             printf("%s", text);
         }
 
+        /// TODO: should be a callback to the host app
         static void ErrorFn(WrenVM *vm, WrenErrorType errorType,
                             const char *module, const int line,
                             const char *msg) {
-            (void)vm;
+            (void) vm;
+
             switch (errorType) {
                 case WREN_ERROR_COMPILE: {
                     printf("[%s line %d] [Error] %s\n", module, line, msg);
@@ -178,11 +294,11 @@ namespace mlp {
             }
         }
 
-        static WrenForeignMethodFn bindForeignMethodFn(WrenVM *vm, const char *module,
+        static WrenForeignMethodFn BindForeignMethodFn(WrenVM *vm, const char *module,
                                                        const char *className, bool isStatic,
                                                        const char *signature) {
-            (void)vm;
-            printf("bindForeignMethodFn: %s %s %s %s\n", module, className, isStatic ? "true" : "false", signature);
+            (void) vm;
+            printf("BindForeignMethodFn: %s %s %s %s\n", module, className, isStatic ? "true" : "false", signature);
             if (!isStatic) {
                 std::cerr << "<ERROR> we only know how to bind wren static methods" << std::endl;
             }
@@ -195,5 +311,6 @@ namespace mlp {
 //            printf("bindForeignClassFn: %s %s\n", module, className);
 //        }
 
+        //void HandleMidiMessage(const unsigned char *data, int size);
     };
 }

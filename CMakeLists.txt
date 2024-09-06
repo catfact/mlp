@@ -44,7 +44,7 @@ if ( ${APPLE})
 endif()
 add_subdirectory(extern/rtaudio)
 
-add_executable(mlp-cli src/mlp-cli/main.cpp)
+add_executable(mlp-cli src/mlp-cli/main.cpp src/mlp/Weaver.cpp)
 
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_LOCAL})
 target_include_directories(mlp-cli PUBLIC ${INCLUDE_DIRS_SYSTEM})

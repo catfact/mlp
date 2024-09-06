@@ -35,6 +35,8 @@ private:
     }
 
 public:
+    /// NB: this function allocates; caller must free
+    /// (FIXME: i'm sure there is a clever way to leverage unique_ptr)
     static const char*  GetMainScript() {
         auto userMain = GetUserMainScript();
         if (userMain != nullptr) {

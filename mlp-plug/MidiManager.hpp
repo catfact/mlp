@@ -2,6 +2,7 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
+#include "mlp/Weaver.hpp"
 
 #include "MidiManager.hpp"
 
@@ -19,9 +20,32 @@ public:
     }
 
     void handleIncomingMidiMessage(juce::MidiInput *source, const juce::MidiMessage &message) override {
+        auto w = mlp::Weaver::GetInstance();
+//        auto description = message.getDescription();
+//        std::cout << "received midi message (source: " << source->getName() << "): " << description << std::endl;
+        (void)source;
+        auto *b = message.getRawData();
+        auto sz = message.getRawDataSize();
+        w->HandleMidiMessage(b, sz);
 
-        auto description = message.getDescription();
-        std::cout << "received midi message (source: " << source->getName() << "): " << description << std::endl;
+
+//        if (message.isNoteOn()) {
+//            std::cout << "note on: " << message.getNoteNumber() << " velocity: " << message.getVelocity() << std::endl;
+//        } else if (message.isNoteOff()) {
+//            std::cout << "note off: " << message.getNoteNumber() << " velocity: " << message.getVelocity() << std::endl;
+//        } else if (message.isController()) {
+//            std::cout << "controller: " << message.getControllerNumber() << " value: " << message.getControllerValue() << std::endl;
+//        } else if (message.isPitchWheel()) {
+//            std::cout << "pitch wheel: " << message.getPitchWheelValue() << std::endl;
+//        } else if (message.isAftertouch()) {
+//            std::cout << "aftertouch: " << message.getAfterTouchValue() << std::endl;
+//        } else if (message.isChannelPressure()) {
+//            std::cout << "channel pressure: " << message.getChannelPressureValue() << std::endl;
+//        } else if (message.isSysEx()) {
+//            std::cout << "sysex: " << message.getSysExData() << std::endl;
+//        } else {
+//            std::cout << "unhandled message type" << std::endl;
+//        }
     }
 
     void timerCallback() override {

@@ -73,9 +73,9 @@ namespace mlp {
             SelectLayer,
             ResetLayer,
             RestartLayer,
-            LoopStartFrame,
-            LoopEndFrame,
-            LoopResetFrame,
+//            LoopStartFrame,
+//            LoopEndFrame,
+//            LoopResetFrame,
             Count
         };
 
@@ -84,9 +84,9 @@ namespace mlp {
                 "SELECT",
                 "RESET",
                 "RESTART",
-                "STARTPOS",
-                "ENDPOS",
-                "RESETPOS"
+//                "STARTPOS",
+//                "ENDPOS",
+//                "RESETPOS"
         };
 
         enum class IndexIndexParamId : int {
@@ -94,6 +94,7 @@ namespace mlp {
             LayerLoopStartFrame,
             LayerLoopEndFrame,
             LayerLoopResetFrame,
+            LayerTriggerFrame,
             Count
         };
 
@@ -101,7 +102,8 @@ namespace mlp {
                 "MODE",
                 "STARTPOS",
                 "ENDPOS",
-                "RESETPOS"
+                "RESETPOS",
+                "TRIGGERPOS"
         };
 
         struct IndexIndexParamValue {
@@ -276,15 +278,15 @@ namespace mlp {
                     case IndexParamId::RestartLayer:
                         kernel.RestartLayer((int) indexParamChangeRequest.value);
                         break;
-                    case IndexParamId::LoopStartFrame:
-                        kernel.SetLoopStartFrame(indexParamChangeRequest.value);
-                        break;
-                    case IndexParamId::LoopEndFrame:
-                        kernel.SetLoopEndFrame(indexParamChangeRequest.value);
-                        break;
-                    case IndexParamId::LoopResetFrame:
-                        kernel.SetLoopResetFrame(indexParamChangeRequest.value);
-                        break;
+//                    case IndexParamId::LoopStartFrame:
+//                        kernel.SetLoopStartFrame(indexParamChangeRequest.value);
+//                        break;
+//                    case IndexParamId::LoopEndFrame:
+//                        kernel.SetLoopEndFrame(indexParamChangeRequest.value);
+//                        break;
+//                    case IndexParamId::LoopResetFrame:
+//                        kernel.SetLoopResetFrame(indexParamChangeRequest.value);
+//                        break;
                     default:
                         break;
                 }
