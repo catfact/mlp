@@ -3,6 +3,7 @@
 #include <iostream>
 #include <juce_core/juce_core.h>
 
+#include "mlp/Weaver.hpp"
 #include "BinaryData.h"
 
 class ScriptManager {

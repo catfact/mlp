@@ -274,7 +274,7 @@ so:
 
 that is probably enough for a 0.0.2 alpha release. 
 
-i think other features can wait, but at the moment (and in order of challenge) those might look omething like this for a 1.0.0 milestone:
+i think other features can wait, but at the moment (and in order of challenge) those might look at something like this for a 1.0.0 milestone:
 - varispeed (the biggest lift and scariest refactor)
 - settable loop and condition counters
 - arbitrary sync behavior specification
@@ -282,3 +282,33 @@ i think other features can wait, but at the moment (and in order of challenge) t
 - routing matrix
 
 **time**: ~6hr
+
+---
+
+# 2024/9/6
+
+added scripting layer (wren)
+
+plugged in MIDI through juce
+
+this is still WIP, only basic tests have been done
+
+also still need to update GUI from wren changes. could funnel changes through GUI but i don't like it for some reason. (this emphasizes again the issue with not having a good plan for managing state flows:  midi -> gui <-> audio.)
+
+i may go ahead and publish an alpha as is, or let's say after one more good session where we try MIDI and wren out more. with understanding that there are many known issues, and just design aspects that aren't good.
+
+random things that need work:
+- stopping/pausing/resuming layers leaves them in weird states sometimes / in some modes. such as, both phasors active. bugs ensue, like both phasors starting together, things not triggering. explicit layer resets seem to basically sort things out.
+- i think the explicit MIDI device management shouldn't be necessary, juce plugin should do it, maybe needs PP flags set. 
+- should rip out the auto-selection stuff in the kernel, move it to the scripting layer.
+- maybe same for the global buttons, have them definable 
+- like maybe kernel just has explicit open/close for each layer. save a good amount of glue and traffic.
+- however, kernel should still manage behavior of write/read/clear flags on loop close, and these flags (toggles?) should be exposed
+- loop end frame should be exposed, as should loop counter (when its implemented!)
+- need wren module loading
+
+phew that makes it look a little overwhelming, oops.
+
+**time** ~4hr
+
+

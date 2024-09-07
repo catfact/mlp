@@ -33,28 +33,30 @@ class Mlp {
     foreign static BangStop()
     foreign static BangReset()
 
-    foreign static ParamLayerPreserveLevel(layer, value);
-    foreign static ParamLayerRecordLevel(layer, value);
-    foreign static ParamLayerPlayLevel(layer, value);
-    foreign static ParamLayerFadeTime(layer, value);
-    foreign static ParamLayerSwitchTime(layer, value);
+    foreign static ParamLayerPreserveLevel(layer, value)
+    foreign static ParamLayerRecordLevel(layer, value)
+    foreign static ParamLayerPlayLevel(layer, value)
+    foreign static ParamLayerFadeTime(layer, value)
+    foreign static ParamLayerSwitchTime(layer, value)
 
-    foreign static GlobalMode(index);
-    foreign static LayerSelect(index);
-    foreign static LayerReset(index);
-    foreign static LayerRestart(index);
+    foreign static GlobalMode(index)
+    foreign static LayerSelect(index)
+    foreign static LayerReset(index)
+    foreign static LayerRestart(index)
 
-    foreign static LayerWrite(layer, state);
-    foreign static LayerClear(layer, state);
-    foreign static LayerRead(layer, state);
-    foreign static LayerLoop(layer, state);
+    foreign static LayerWrite(layer, state)
+    foreign static LayerClear(layer, state)
+    foreign static LayerRead(layer, state)
+    foreign static LayerLoop(layer, state)
 
 // NYI
-//    foreign static LayerMode(layer, value);
-//    foreign static LayerLoopStartFrame(layer, value);
-//    foreign static LayerLoopEndFrame(layer, value);
-//    foreign static LayerResetFrame(layer, value);
-//    foreign static LayerTriggerFrame(layer, value);
+//    foreign static LayerMode(layer, value)
+//    foreign static LayerLoopStartFrame(layer, value)
+//    foreign static LayerLoopEndFrame(layer, value)
+//    foreign static LayerResetFrame(layer, value)
+//    foreign static LayerTriggerFrame(layer, value)
 
 
 }
+
+System.print("done; Mlp = %(Mlp)")

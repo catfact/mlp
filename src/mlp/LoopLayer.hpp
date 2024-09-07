@@ -82,7 +82,8 @@ namespace mlp {
 
 
         void CloseLoop(bool shouldUnmute = true, bool shouldDub = false) {
-            state = LoopLayerState::PLAYING;
+            //state = LoopLayerState::PLAYING;
+            SetState(LoopLayerState::PLAYING);
             SetRead(shouldUnmute);
             SetWrite(shouldDub);
             lastPhasorIndex = currentPhasorIndex;
@@ -164,20 +165,24 @@ namespace mlp {
         // scaling record/preserve levels by its fade value
         void WritePhasor(const float *src, const FadePhasor &aPhasor) {
             auto bufIdx = aPhasor.currentFrame % bufferFrames;
-            /// FIXME: maybe linear inversion of the switch is not ideal
-            float modPreserve = preserveLevel * (1-clearSwitch.level);
-            /// we want to modulate the preserve level towards unity as the phasor fades out
+
+
+            /// modulate the preserve level by the clear switch, inverted
+            /// FIXME: maybe linear inversion is not ideal during xfade
+            float modPreserve = preserveLevel * (1 - clearSwitch.level);
+            /// modulate the preserve level towards unity as the phasor fades out
             modPreserve += (1.f - modPreserve) * (1.f - aPhasor.fadeValue);
+
             /// and also as the write switch disengages
-            /// (TODO: maybe profile this conditional)
-            // if (!writeSwitch.isOpen && writeSwitch.isSwitching) {
-                float switchLevel = writeSwitch.level;
-                modPreserve += (1.f - modPreserve) * (1 - switchLevel);
-            // }
+            /// idk if it would help to test here:
+            //if (!writeSwitch.isOpen && writeSwitch.isSwitching)
+            modPreserve += (1.f - modPreserve) * (1 - writeSwitch.level);
+
+            float modRecord = recordLevel * aPhasor.fadeValue;
+            modRecord *= writeSwitch.level;
+
             for (unsigned int ch = 0; ch < numChannels; ++ch) {
                 float x = *(src + ch);
-                float modRecord = recordLevel * aPhasor.fadeValue;
-                modRecord *= writeSwitch.level;
                 x *= modRecord;
                 float y = buffer[(bufIdx * numChannels) + ch];
                 y *= modPreserve;
@@ -220,7 +225,7 @@ namespace mlp {
 //                    SetWrite(false);
                     state = LoopLayerState::STOPPED;
                     stopPending = false;
-                    if(outputs) outputs->flags.Set(LayerOutputFlagId::Stopped);
+                    if (outputs) outputs->flags.Set(LayerOutputFlagId::Stopped);
                 }
             }
 
@@ -264,7 +269,7 @@ namespace mlp {
         }
 
         void Resume() {
-            for (unsigned int i=0; i<2; ++i) {
+            for (unsigned int i = 0; i < 2; ++i) {
                 auto &thePhasor = phasor[i];
                 if (!thePhasor.isActive) {
                     currentPhasorIndex = i;
@@ -352,9 +357,21 @@ namespace mlp {
                 std::cout << "using layer outputs: " << outputs << std::endl;
                 if (loopEnabled) {
                     outputs->flags.Set(LayerOutputFlagId::LoopEnabled);
-                }
-                else {
+                } else {
                     outputs->flags.Set(LayerOutputFlagId::LoopDisabled);
+                }
+            }
+        }
+
+        void SetState(LoopLayerState newState) {
+            state = newState;
+            if (outputs) {
+                if (state == LoopLayerState::STOPPED) {
+                    outputs->flags.Set(LayerOutputFlagId::Stopped);
+                } else if (state == LoopLayerState::SETTING) {
+                    outputs->flags.Set(LayerOutputFlagId::Setting);
+                } else if (state == LoopLayerState::PLAYING) {
+                    outputs->flags.Set(LayerOutputFlagId::Playing);
                 }
             }
         }

@@ -160,8 +160,8 @@ namespace mlp {
         //------------------------------------------------
         //-- control
 
-        // first action: opens/closes the loop, advances the layer
-        void SetLoopTap() {
+        // first action: opens/closes the loop, optionally advances the layer selection
+        void SetLoop() {
             switch (layer[currentLayer].state) {
                 case LoopLayerState::STOPPED:
                 case LoopLayerState::PLAYING:

@@ -28,7 +28,6 @@ public:
         auto sz = message.getRawDataSize();
         w->HandleMidiMessage(b, sz);
 
-
 //        if (message.isNoteOn()) {
 //            std::cout << "note on: " << message.getNoteNumber() << " velocity: " << message.getVelocity() << std::endl;
 //        } else if (message.isNoteOff()) {

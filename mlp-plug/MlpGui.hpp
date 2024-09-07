@@ -290,7 +290,7 @@ class MlpGui : public juce::Component {
                 addAndMakeVisible(resetButton);
                 resetButton->onClick = [layerIndex] {
                     if (output) {
-                        output->SendIndex(mlp::Mlp::IndexParamId::ResetLayer, static_cast<unsigned int>(layerIndex));
+                        output->SendIndex(mlp::Mlp::IndexParamId::LayerReset, static_cast<unsigned int>(layerIndex));
                     }
                 };
                 controls.push_back(std::make_unique<juce::TextButton>("RESTART"));
@@ -298,7 +298,7 @@ class MlpGui : public juce::Component {
                 addAndMakeVisible(restartButton);
                 restartButton->onClick = [layerIndex] {
                     if (output) {
-                        output->SendIndex(mlp::Mlp::IndexParamId::RestartLayer, static_cast<unsigned int>(layerIndex));
+                        output->SendIndex(mlp::Mlp::IndexParamId::LayerRestart, static_cast<unsigned int>(layerIndex));
                     }
                 };
             }
@@ -374,7 +374,7 @@ class MlpGui : public juce::Component {
                     x = startPos * ww;
                     x = std::max(0.f, std::min(x, ww - 1));
                     w = (endPos - startPos) * ww;
-                    w = std::max(1.f, std::min(ww - x - 1, w));
+                    w = std::max(4.f, std::min(ww - x - 1, w));
                     //w = std::min(1.f - x, w);
                     g.fillRect(x + ins, ins, w, hh-4);
                 } else {
@@ -387,7 +387,7 @@ class MlpGui : public juce::Component {
                     x = endPos * ww;
                     x = std::max(0.f, std::min(x, ww - 1));
                     w = (1.f - endPos) * ww;
-                    w = std::max(1.f, std::min(ww - x - 1, w));
+                    w = std::max(4.f, std::min(ww - x - 1, w));
                     g.fillRect(x + ins, ins, w, (float) hh);
                 }
             }
@@ -409,7 +409,7 @@ class MlpGui : public juce::Component {
             selectedToggle->onClick = [this, layerIndex]() {
                 if (output) {
                     selectedToggle->setToggleState(true, juce::NotificationType::dontSendNotification);
-                    output->SendIndex(mlp::Mlp::IndexParamId::SelectLayer, static_cast<unsigned int>(layerIndex));
+                    output->SendIndex(mlp::Mlp::IndexParamId::LayerSelect, static_cast<unsigned int>(layerIndex));
                     /// ... will this work? i think selected-toggles on other layers will get their state updated by output flags
                 }
             };

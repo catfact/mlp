@@ -102,6 +102,12 @@ private:
                             case LayerOutputFlagId::LoopDisabled:
                                 gui.SetLayerToggleState(flagsData.layer, (unsigned int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled, false);
                                 break;
+                            case LayerOutputFlagId::Setting:
+                                break;
+                            case LayerOutputFlagId::Playing:
+                                break;
+
+
                         }
 
                     }

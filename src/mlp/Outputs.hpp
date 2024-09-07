@@ -30,6 +30,8 @@ namespace mlp {
         Closed,
         LoopEnabled,
         LoopDisabled,
+        Setting,
+        Playing,
         Count
     };
 
@@ -56,7 +58,9 @@ namespace mlp {
         "Opened",
         "Closed",
         "LoopEnabled",
-        "LoopDisabled"
+        "LoopDisabled",
+        "Setting",
+        "Playing"
     };
 
 
@@ -93,20 +97,5 @@ namespace mlp {
 
 
     static const OutputsData defaultOutputsData{};
-
-//    class Outputs {
-//        std::atomic<OutputsData> data;
-//    public:
-//        void Read(OutputsData& dst)  {
-//            dst = data.exchange(defaultOutputsData);
-//        }
-//        void Write(OutputsData& src)  {
-//            data.store(src);
-//        }
-//        static void WriteToQueue(OutputsData& src, moodycamel::ReaderWriterQueue<OutputsData>& queue) {
-//            queue.try_enqueue(src);
-//        }
-//
-//    };
 
 }

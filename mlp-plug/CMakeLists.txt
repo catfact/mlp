@@ -40,6 +40,7 @@ target_sources(mlp-plug
         PluginEditor.cpp
         PluginProcessor.cpp
         MlpGui.cpp
+        ${MLP_SRC}/AudioTaper.cpp
         ${MLP_SRC}/Weaver.cpp
         ${WREN_VM}/wren_compiler.c
         ${WREN_VM}/wren_vm.c

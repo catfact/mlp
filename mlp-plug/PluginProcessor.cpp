@@ -16,6 +16,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 
     //const char* getNamedResource (const char* resourceNameUTF8, int& dataSizeInBytes);
     auto mainScript = ScriptManager::GetMainScript();
+
     mlp::Weaver::Init(&mlp, mainScript);
     delete mainScript;
     weaver = mlp::Weaver::GetInstance();
