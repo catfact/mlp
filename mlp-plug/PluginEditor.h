@@ -163,5 +163,8 @@ private:
     EditorInput editorInput;
     EditorOutput editorOutput;
 
+public:
+    MlpGui *GetGui() { return &mlpGui; }
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

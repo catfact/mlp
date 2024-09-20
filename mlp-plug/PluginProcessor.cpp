@@ -173,7 +173,9 @@ bool AudioPluginAudioProcessor::hasEditor() const {
 }
 
 juce::AudioProcessorEditor *AudioPluginAudioProcessor::createEditor() {
-    return new AudioPluginAudioProcessorEditor(*this);
+    auto *editor= new AudioPluginAudioProcessorEditor(*this);
+    weaver->SetStateReflector(editor->GetGui());
+    return editor;
 }
 
 //==============================================================================

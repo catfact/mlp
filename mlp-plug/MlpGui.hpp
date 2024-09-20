@@ -15,10 +15,11 @@
 #include "Mlp.hpp"
 #include "mlp/Constants.hpp"
 #include "mlp/LayerBehavior.hpp"
+#include "mlp/StateReflector.hpp"
 #include "MlpLookAndFeel.hpp"
 #include "MlpGuiIo.hpp"
 
-class MlpGui : public juce::Component {
+class MlpGui : public juce::Component, public mlp::StateReflector {
 
 //==============================================================================
 //=== I/O
@@ -112,6 +113,7 @@ class MlpGui : public juce::Component {
                 }
             };
         }
+
         void paint(juce::Graphics &g) override {
             g.fillAll(juce::Colours::black);
             juce::Slider::paint(g);
@@ -127,6 +129,7 @@ class MlpGui : public juce::Component {
         unsigned int lineIndex = 0;
         typedef std::chrono::time_point<std::chrono::system_clock> time_t;
         time_t time;
+
         explicit LayerOutputLog() {
             setMultiLine(true);
             setReadOnly(true);
@@ -284,6 +287,7 @@ class MlpGui : public juce::Component {
                 : public LayerWidgetControlGroup<juce::TextButton, 2> {
             juce::TextButton *resetButton;
             juce::TextButton *restartButton;
+
             explicit LayerResetControlGroup(int layerIndex) {
                 controls.push_back(std::make_unique<juce::TextButton>("RESET"));
                 resetButton = controls.back().get();
@@ -364,8 +368,8 @@ class MlpGui : public juce::Component {
                 g.fillAll(juce::Colours::black);
 
                 const float ins = 2.f;
-                auto ww = static_cast<float>(getWidth()) - (ins*2);
-                auto hh = static_cast<float>(getHeight()) - (ins*2);
+                auto ww = static_cast<float>(getWidth()) - (ins * 2);
+                auto hh = static_cast<float>(getHeight()) - (ins * 2);
                 float x, w;
 
                 g.setColour(juce::Colours::lightslategrey);
@@ -376,13 +380,13 @@ class MlpGui : public juce::Component {
                     w = (endPos - startPos) * ww;
                     w = std::max(4.f, std::min(ww - x - 1, w));
                     //w = std::min(1.f - x, w);
-                    g.fillRect(x + ins, ins, w, hh-4);
+                    g.fillRect(x + ins, ins, w, hh - 4);
                 } else {
                     // fill from zero to start
                     x = 0;
                     w = startPos * ww;
                     w = std::max(1.f, std::min(ww - x - 1, w));
-                    g.fillRect(ins + x,  ins, w, hh);
+                    g.fillRect(ins + x, ins, w, hh);
                     // fill from end to one
                     x = endPos * ww;
                     x = std::max(0.f, std::min(x, ww - 1));
@@ -455,7 +459,7 @@ class MlpGui : public juce::Component {
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
                     Track(Px(buttonHeight)),
-                    Track(Px((sliderHeight+2)*5)),
+                    Track(Px((sliderHeight + 2) * 5)),
                     Track(Px(sliderHeight)),
                     Track(Fr(1)),
             };
@@ -528,7 +532,7 @@ public:
                     for (unsigned int localMode = 0;
                          localMode < (unsigned int) mlp::LayerBehaviorModeId::COUNT; ++localMode) {
                         modeControlGroup->controls[localMode]->setToggleState(localMode == globalMode,
-                                                                               juce::NotificationType::dontSendNotification);
+                                                                              juce::NotificationType::dontSendNotification);
                     }
                 }
             };
@@ -601,11 +605,91 @@ public:
         globalControlGroup->modeButtons[1]->setToggleState(true, juce::NotificationType::dontSendNotification);
         for (auto &layer: layerControlStack->layerControlGroups) {
             layer->modeControlGroup->controls[1]->setToggleState(true, juce::NotificationType::dontSendNotification);
-            layer->toggleControlGroup->controls[(int)mlp::Mlp::IndexBoolParamId::LayerReadEnabled]->setToggleState(true, juce::NotificationType::dontSendNotification);
-            layer->toggleControlGroup->controls[(int)mlp::Mlp::IndexBoolParamId::LayerLoopEnabled]->setToggleState(true, juce::NotificationType::dontSendNotification);
-            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerPlaybackLevel]->setValue(1.0);
-            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerRecordLevel]->setValue(1.0);
-            layer->parameterControlGroup->controls[(int)mlp::Mlp::IndexFloatParamId::LayerPreserveLevel]->setValue(1.0);
+            layer->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerReadEnabled]->setToggleState(
+                    true, juce::NotificationType::dontSendNotification);
+            layer->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerLoopEnabled]->setToggleState(
+                    true, juce::NotificationType::dontSendNotification);
+            layer->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerPlaybackLevel]->setValue(
+                    1.0);
+            layer->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerRecordLevel]->setValue(1.0);
+            layer->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerPreserveLevel]->setValue(
+                    1.0);
         }
+    }
+
+
+    //==============================================================================
+    //=== setters
+    // for updating GUI state from external sources (MIDI, etc)
+
+    void BangSet() override {
+        // TODO
+    }
+
+    void BangStop() override {
+        // TODO
+    }
+
+    void BangReset() override {
+        // TODO
+    }
+
+    void ParamLayerPreserveLevel(unsigned int layerIndex, float level) override {
+        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerPreserveLevel]->setValue(level);
+    }
+
+    void ParamLayerRecordLevel(unsigned int layerIndex, float level) override {
+        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerRecordLevel]->setValue(level);
+    }
+
+    void ParamLayerPlaybackLevel(unsigned int layerIndex, float level) override {
+        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerPlaybackLevel]->setValue(level);
+    }
+
+    void ParamLayerFadeTime(unsigned int layerIndex, float time) override {
+        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerFadeTime]->setValue(time);
+    }
+
+    void ParamLayerSwitchTime(unsigned int layerIndex, float time) override {
+        layerControlStack->layerControlGroups[layerIndex]->parameterControlGroup->controls[(int) mlp::Mlp::IndexFloatParamId::LayerSwitchTime]->setValue(time);
+    }
+
+    void GlobalMode(unsigned int mode) override {
+        globalControlGroup->modeButtons[mode]->setToggleState(true, juce::NotificationType::dontSendNotification);
+    }
+
+    void LayerSelect(unsigned int layerIndex) override {
+        (void)layerIndex;
+        // TODO?
+    }
+
+    void LayerReset(unsigned int layerIndex) override {
+        (void)layerIndex;
+        // TODO?
+    }
+
+    void LayerRestart(unsigned int layerIndex) override {
+        (void)layerIndex;
+        // TODO?
+    }
+
+    void LayerWrite(unsigned int layerIndex, bool state) override {
+        auto &but = layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerWriteEnabled];
+        but->setToggleState(state, juce::NotificationType::dontSendNotification);
+    }
+
+    void LayerRead(unsigned int layerIndex, bool state) override {
+        auto &but = layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerReadEnabled];
+        but->setToggleState(state, juce::NotificationType::dontSendNotification);
+    }
+
+    void LayerClear(unsigned int layerIndex, bool state) override {
+        auto &but = layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerClearEnabled];
+        but->setToggleState(state, juce::NotificationType::dontSendNotification);
+    }
+
+    void LayerLoop(unsigned int layerIndex, bool state) override {
+        auto &but = layerControlStack->layerControlGroups[layerIndex]->toggleControlGroup->controls[(int) mlp::Mlp::IndexBoolParamId::LayerLoopEnabled];
+        but->setToggleState(state, juce::NotificationType::dontSendNotification);
     }
 };
